@@ -1,7 +1,7 @@
 /**
  * @Name    kss query
  * @Author  linyongji
- * @Version 0.5.0
+ * @Version 0.5.5
  */
 (function(window, undefined) {
 
@@ -660,7 +660,33 @@ kss.extend({
         if(parent && parent.nodeType !== 11){
             parent.removeChild(elem);
         }
-    }
+    },
+    
+    // json.parse
+    // add at 2012.12.14
+    parseJSON: function(data) {
+		if(!data || typeof data !== "string") return null;
+        
+		data = kss.trim(data);
+
+		if(window.JSON && window.JSON.parse) {
+			return window.JSON.parse(data);
+		}
+
+		if (/^[\],:{}\s]*$/.test(data.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, "@")
+            .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, "]")
+            .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+			return (new Function("return " + data))();
+		}
+		
+        kss.error("Invalid JSON: " + data);
+	},
+    
+    // throw error
+    // add at 2012.12.14
+    error: function(msg) {
+		throw new Error(msg);
+	}
 });
 
 // ajax
@@ -681,39 +707,47 @@ var ajax = {
     
     settings: {
         url: null,
-        type: 'GET',
+        type: "GET",
         data: null,
         async: true,
+        cache: true,
         timeout: null,
-        contentType: 'application/x-www-form-urlencoded',
+        contentType: "application/x-www-form-urlencoded",
         dataType: null,
-        beforeSend: function() {},
+        beforeSend: function(xhr) {},
         success: function(data, status) {},
         error: function(xhr, status) {},
         complete: function(xhr, status) {}
     },
     
-    queryString: function(data) {
-        if(!data) return '';
-        if(typeof data === 'string') return data;
-        var ret = '';
-        if(typeof data === 'object') {
-            for(var key in data) {
-                ret += '&' + key + '=' + encodeURIComponent(data[key]);
-            }
-            ret = ret.substr(1);
+    // update 2012.12.14
+    queryString: function(s) {
+        var ret = "";
+        if(typeof data === "string") {
+            ret = data;
         }
+        else if(typeof data === "object") {
+            for(var key in data) {
+                ret += "&" + key + "=" + encodeURIComponent(data[key]);
+            }
+        }
+        if(s.cache === false) {
+            ret += "&_kss=" + kss.now();
+        }
+        ret = ret.substr(1);
         return ret;
     },
     
+    // update 2012.12.14
     httpData: function(xhr, type) {
         var ct = xhr.getResponseHeader("content-type") || "";
         if(!type && ct.indexOf("xml") >= 0 || type.toLowerCase() == "xml") return xhr.responseXML;
+        if(type === "json") return kss.parseJSON(xhr.responseText);
         return xhr.responseText;
     },
     
     init: function(settings) {
-        if(typeof settings !== 'object') {
+        if(typeof settings !== "object") {
             return false;
         }
         
@@ -726,17 +760,17 @@ var ajax = {
         
         var xhr = ajax.xhr();
         
-        s.beforeSend();
+        s.beforeSend(xhr);
         //send
         if(!s.url) return false;
         if(s.type == 'GET') {
             var url = s.url.indexOf('?') >= 0 ? s.url : s.url + '?',
-                data = ajax.queryString(s.data);
+                data = ajax.queryString(s);
             url = url + (url.substr(-1) == '?' ? '' : '&') + data;
             xhr.open(s.type, url, s.async);
             xhr.send();
         } else if(s.type == 'POST') {
-            var data = ajax.queryString(s.data);
+            var data = ajax.queryString(s);
             xhr.open(s.type, s.url, s.async);
             xhr.setRequestHeader('Content-type', s.contentType);
             xhr.send(data); 
@@ -746,7 +780,7 @@ var ajax = {
         // callback
         xhr.onreadystatechange = function() {
             if(xhr.readyState == 4) {
-                if(xhr.status == 200) {
+                if(xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
                     var data = ajax.httpData(xhr, s.dataType);
                     s.success(data, xhr.status);
                 } else {
