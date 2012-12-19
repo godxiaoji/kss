@@ -1,7 +1,7 @@
 /**
  * @Name    kss query
  * @Author  linyongji
- * @Version 0.5.5
+ * @Version 0.6.0
  */
 (function(window, undefined) {
 
@@ -278,7 +278,7 @@ kss.fn.init.prototype = kss.fn;
 // add at 2012.11.22
 // kss object prototype
 kss.fn.extend = kss.extend = function(obj) {
-    if(typeof obj === 'object') {
+    if(typeof obj === "object") {
         for(var key in obj) {
             this[key] = obj[key];
         }
@@ -315,7 +315,7 @@ kss.clone = function(obj) {
         return newArr;
     } else if(kss.isFunction(obj) || obj instanceof Date || obj instanceof RegExp) {
         return obj;
-    } else if(typeof obj === 'object') {
+    } else if(typeof obj === "object") {
         var newObj = {};
         for(var i in obj) {
            newObj[i] = arguments.callee.call(null, obj[i]);
@@ -356,7 +356,7 @@ kss.fn.extend({
         
         return kss.each(this, function() {
             if(typeof opt.callback === "function") {
-                kss.queue(this, 'animatequeue', opt.callback);
+                kss.queue(this, "animatequeue", opt.callback);
             }
             for(var name in prop) {
                 if(kss.fxStyle.indexOf(name) >= 0) {
@@ -403,7 +403,7 @@ kss.fx.prototype = {
         if(t > this.startTime + this.options.speed) {
             nowPos = this.end;
             this.stop();
-            kss.dequeue(this.elem, 'animatequeue');
+            kss.dequeue(this.elem, "animatequeue");
         } else {
             var n = t - this.startTime;
             var p = n / this.options.speed;
@@ -414,8 +414,8 @@ kss.fx.prototype = {
     },
 
     update: function(value) {
-        if(this.name !== 'opacity') {
-            value += 'px';
+        if(this.name !== "opacity") {
+            value += "px";
         }
         this.elem.style[this.name] = value;
     },
@@ -475,14 +475,14 @@ kss.extend({
         return opt;
     },
     
-    fxStyle: ['opacity', 'lineHeight', 'height', 'width', 'top', 'bottom', 'left', 'right', 'backgroundPositionX', 'backgroundPositionY', 'marginTop', 'marginBottom', 'marginLeft', 'marginLeft', 'paddingTop', 'paddingBottom', 'paddingLeft', 'paddingRight']
+    fxStyle: ["opacity", "lineHeight", "height", "width", "top", "bottom", "left", "right", "backgroundPositionX", "backgroundPositionY", "marginTop", "marginBottom", "marginLeft", "marginLeft", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight"]
 });
 
 // add at 2012.11.21
 // for not array indexOf
 if(!Array.prototype.indexOf) {
     Array.prototype.indexOf = function (obj, fromIndex) {
-        if (typeof fromIndex !== 'number') {
+        if (typeof fromIndex !== "number") {
             fromIndex = 0;
         } else if (fromIndex < 0) {
             fromIndex = Math.max(0, this.length + fromIndex);
@@ -657,7 +657,7 @@ kss.extend({
     // remove node
     remove: function(elem) {
         var parent = elem.parentNode;
-        if(parent && parent.nodeType !== 11){
+        if(parent && parent.nodeType !== 11) {
             parent.removeChild(elem);
         }
     },
@@ -675,7 +675,7 @@ kss.extend({
 
 		if (/^[\],:{}\s]*$/.test(data.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, "@")
             .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, "]")
-            .replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
+            .replace(/(?:^|:|,)(?:\s*\[)+/g, ""))) {
 			return (new Function("return " + data))();
 		}
 		
@@ -689,10 +689,53 @@ kss.extend({
 	}
 });
 
-// ajax
-kss.ajax = function(settings) {
-    return new ajax.init(settings);
-};
+kss.extend({
+    // ajax
+    ajax: function(settings) {
+        return new ajax.init(settings);
+    },
+    // add at 2012.12.19
+    // jsonp
+    getJSON: function(url, data, func) {
+        if(typeof url !== "string") {
+            return;
+        }
+        
+        var name,
+            data = ajax.queryString(data);
+        
+        data += (data === "" ? "" : "&") + "kss_time=" + kss.now();
+        url = url + (url.indexOf("?") === -1 ? "?" : "&") + data;
+        
+        var match = /callback=(\w+)/.exec(url);
+        if(match && match[1]) {
+            name = match[1];
+        } else {
+            name = "kss_jsonp_" + kss.now() + '_' + Math.random().toString().substr(2);
+            url = url.replace("callback=?", "callback=" + name);
+            url = url.replace("callback=%3F", "callback=" + name);
+        }
+        
+        var jsonp = document.createElement("script");
+        jsonp.type = "text/javascript";
+        jsonp.src = url;
+        jsonp.id = name;
+        
+        window[name] = function(json) {
+            kss("#"+name).remove();
+            window[name] = undefined;
+            if(kss.isFunction(func)) {
+                func(json);
+            }
+        };
+        
+        var head = kss("head");
+        if(head[0]) {
+            head[0].appendChild(jsonp);
+        }
+    }
+});
+
 // ajax object
 var ajax = {
     xhr: function() {
@@ -720,8 +763,8 @@ var ajax = {
         complete: function(xhr, status) {}
     },
     
-    // update 2012.12.14
-    queryString: function(s) {
+    // update 2012.12.17
+    queryString: function(data) {
         var ret = "";
         if(typeof data === "string") {
             ret = data;
@@ -730,9 +773,6 @@ var ajax = {
             for(var key in data) {
                 ret += "&" + key + "=" + encodeURIComponent(data[key]);
             }
-        }
-        if(s.cache === false) {
-            ret += "&_kss=" + kss.now();
         }
         ret = ret.substr(1);
         return ret;
@@ -746,40 +786,22 @@ var ajax = {
         return xhr.responseText;
     },
     
-    init: function(settings) {
-        if(typeof settings !== "object") {
+    // update 2012.12.14
+    init: function(s) {
+        if(typeof s !== "object") {
             return false;
         }
         
         for(var i in ajax.settings) {
-            if(typeof settings[i] === 'undefined') {
-                settings[i] = ajax.settings[i];
+            if(typeof s[i] === "undefined") {
+                s[i] = ajax.settings[i];
             }
         }
-        var s = settings;
-        
         var xhr = ajax.xhr();
-        
         s.beforeSend(xhr);
-        //send
-        if(!s.url) return false;
-        if(s.type == 'GET') {
-            var url = s.url.indexOf('?') >= 0 ? s.url : s.url + '?',
-                data = ajax.queryString(s);
-            url = url + (url.substr(-1) == '?' ? '' : '&') + data;
-            xhr.open(s.type, url, s.async);
-            xhr.send();
-        } else if(s.type == 'POST') {
-            var data = ajax.queryString(s);
-            xhr.open(s.type, s.url, s.async);
-            xhr.setRequestHeader('Content-type', s.contentType);
-            xhr.send(data); 
-        } else {
-            return false;
-        }
         // callback
         xhr.onreadystatechange = function() {
-            if(xhr.readyState == 4) {
+            if(xhr.readyState === 4) {
                 if(xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
                     var data = ajax.httpData(xhr, s.dataType);
                     s.success(data, xhr.status);
@@ -788,8 +810,27 @@ var ajax = {
                 }
                 s.complete(xhr, xhr.status);
             }
+        };
+        //send
+        if(!s.url || typeof s.url !== "string") {
+            return;
         }
-        
+        if(s.type === "GET") {
+            var data = ajax.queryString(s.data);
+            if(s.cache === false) {
+                data += (data === "" ? "" : "&") + "kss_time=" + kss.now();
+            }
+            var url = s.url + (s.url.indexOf("?") === -1 ? "?" : "&") + data;
+            xhr.open(s.type, url, s.async);
+            xhr.send();
+        } else if(s.type === "POST") {
+            var data = ajax.queryString(s);
+            xhr.open(s.type, s.url, s.async);
+            xhr.setRequestHeader("Content-type", s.contentType);
+            xhr.send(data); 
+        } else {
+            return;
+        }
     }
 };
 
@@ -799,7 +840,7 @@ kss.event = {
     
     add: function(elem, type, handler) {
         // update at 2012.11.23
-        if(!elem.nodeType || typeof type !== 'string' || elem.nodeType === 3 || elem.nodeType === 8) {
+        if(!elem.nodeType || typeof type !== "string" || elem.nodeType === 3 || elem.nodeType === 8) {
             return;
         }
         var eventHandler = handler;
@@ -820,7 +861,7 @@ kss.event = {
     
     remove: function(elem, type, handler) {
         // update at 2012.11.23
-        if(!elem.nodeType || typeof type !== 'string' || elem.nodeType === 3 || elem.nodeType === 8) {
+        if(!elem.nodeType || typeof type !== "string" || elem.nodeType === 3 || elem.nodeType === 8) {
             return false;
         }
         var eventHandler = handler;
@@ -828,7 +869,7 @@ kss.event = {
             elem.removeEventListener(type, eventHandler, false);
         } else if (document.detachEvent) {
             eventHandler = kss.event.handle[handler];
-            elem.detachEvent('on' + type, eventHandler);
+            elem.detachEvent("on" + type, eventHandler);
         } else {
             elem["on" + type] = null;
         }
@@ -916,15 +957,15 @@ kss.extend({
     show: function(elem) {
         var old = kss.data(elem, "olddisplay");
         elem.style.display = old || "";
-        var display = kss.curCss(elem, 'display');
-        if(display == 'none') {
-            elem.style.display = 'block';
+        var display = kss.curCss(elem, "display");
+        if(display == "none") {
+            elem.style.display = "block";
         }
     },
 
     hide: function(elem) {
-        var display = kss.curCss(elem, 'display');
-        if(display != 'none') {
+        var display = kss.curCss(elem, "display");
+        if(display != "none") {
             kss.data(elem, "olddisplay", display);
         }
         elem.style.display = "none";
@@ -1036,7 +1077,7 @@ kss.extend({
                 params[key] = value;
             }
         }
-        if(typeof name === 'undefined') {
+        if(typeof name === "undefined") {
             if(kss.isEmptyObject(params)) {
                 return undefined;
             }
@@ -1051,15 +1092,15 @@ kss.extend({
 
     // cookie
     cookie: function(name, value, options) {
-        if(typeof name === 'undefined') return null;
+        if(typeof name === "undefined") return null;
         // get
-        if(typeof value === 'undefined') {
+        if(typeof value === "undefined") {
             var cookieValue = null;
-            if (document.cookie && document.cookie != '') {
-                var cookies = document.cookie.split(';');
+            if (document.cookie && document.cookie != "") {
+                var cookies = document.cookie.split(";");
                 for (var i = 0; i < cookies.length; i++) {
                     var cookie = kss.trim(cookies[i]);
-                    if(cookie.indexOf(name+'=') === 0) {
+                    if(cookie.indexOf(name+"=") === 0) {
                         cookieValue = cookie.substr(name.length+1);
                         break;
                     }
@@ -1071,24 +1112,24 @@ kss.extend({
         options = options || {};
         // delete
         if (value === null) {
-            value = '';
+            value = "";
             options.expires = -1;
         }
-        var expires = '';
-        if (options.expires && (typeof options.expires == 'number' || options.expires.toUTCString)) {
+        var expires = "";
+        if (options.expires && (typeof options.expires == "number" || options.expires.toUTCString)) {
             var date;
-            if (typeof options.expires == 'number') {
+            if (typeof options.expires == "number") {
                 date = new Date();
                 date.setTime(date.getTime() + options.expires * 1000);
             } else {
                 date = options.expires;
             }
-            expires = '; expires=' + date.toUTCString();
+            expires = "; expires=" + date.toUTCString();
         }
-        var path = options.path ? '; path=' + options.path : '';
-        var domain = options.domain ? '; domain=' + options.domain : '';
-        var secure = options.secure ? '; secure' : '';
-        var ret = [name, '=', encodeURIComponent(value), expires, path, domain, secure].join('');
+        var path = options.path ? "; path=" + options.path : "";
+        var domain = options.domain ? "; domain=" + options.domain : "";
+        var secure = options.secure ? "; secure" : "";
+        var ret = [name, "=", encodeURIComponent(value), expires, path, domain, secure].join("");
         document.cookie = ret;
         return ret;
     }
