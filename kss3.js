@@ -1,7 +1,7 @@
 /**
  * @Name    kss query
  * @Author  linyongji
- * @Version 0.6.0
+ * @Version 0.6.1
  */
 (function(window, undefined) {
 
@@ -1060,7 +1060,7 @@ kss.extend({
 
 // extra extend
 kss.extend({
-    // update at 2012.12.11
+    // update at 2012.12.24
     // get param from url
     get: function(name) {
         if(!location.search) return undefined;
@@ -1074,7 +1074,7 @@ kss.extend({
             if(pos > 0) {
                 key = pathInfo[i].substring(0, pos);
                 value = pathInfo[i].substring(pos+1);
-                params[key] = value;
+                params[key] = decodeURIComponent(value);
             }
         }
         if(typeof name === "undefined") {
