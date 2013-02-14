@@ -1,7 +1,8 @@
 /**
- * @Name    kss query
- * @Author  linyongji
- * @Version 0.6.1
+ * Kss Javascript Class Library
+ * @Author  Travis(LinYongji)
+ * @Contact http://travisup.com/
+ * @Version 0.6.4
  */
 (function(window, undefined) {
 
@@ -88,9 +89,9 @@ kss.fn = kss.prototype = {
         if(typeof selector !== "string") return kss();
         
         var pos = selector.indexOf(" ");
-        var child;
+        var children;
         if(pos >= 0) {
-            child = selector.substr(pos+1);
+            children = selector.substr(pos+1);
             selector = selector.substring(0, pos);
         }
         if(this.length === 1) {
@@ -103,19 +104,20 @@ kss.fn = kss.prototype = {
             }
         }
         var obj = this.push(ret);
-        if(child) {
-            return obj.find(child);
+        if(children) {
+            return obj.find(children);
         }
         return obj;
     },
     
-    child: function(selector) {
+    // update at 2013.02.14
+    children: function(selector) {
         if(this.length === 1) {
-            var ret = kss.child(selector, this[0]);
+            var ret = kss.children(selector, this[0]);
         } else {
             var ret = [], temp;
             for(var i = 0, len = this.length; i < len; i++) {
-                temp = kss.child(selector, this[i]);
+                temp = kss.children(selector, this[i]);
                 ret = kss.merge(ret, temp);
             }
         }
@@ -275,74 +277,89 @@ kss.fn = kss.prototype = {
 
 kss.fn.init.prototype = kss.fn;
 
-// add at 2012.11.22
-// kss object prototype
-kss.fn.extend = kss.extend = function(obj) {
-    if(typeof obj === "object") {
-        for(var key in obj) {
-            this[key] = obj[key];
-        }
-    }
-};
-
-// data Cache
-var dataCache = {};
-window.dataCache =dataCache;
-kss.data = function(elem, key, value) {
-    if(value === undefined) {
-        if(dataCache.hasOwnProperty(elem)) {
-            if(dataCache[elem].hasOwnProperty(key)) {
-                return dataCache[elem][key];
+// update at 2013.02.13
+// 对象继承
+kss.fn.extend = kss.extend = function(first, second) {
+    // 传入第二个参数则把第二个对象的属性继承到第一个对象中并返回
+    if(typeof second === "object") {
+        for(var key in second) {
+            if(typeof first[key] === "object") {
+                first[key] = kss.extend(first[key], second[key]);
+            } else {
+                first[key] = second[key];
             }
         }
-        return null;
-    }
-    if(!dataCache.hasOwnProperty(elem)) dataCache[elem] = {};
-    dataCache[elem][key] = value;
-    return dataCache[elem];
-};
-
-// add at 2012.12.12
-// deep copy
-kss.clone = function(obj) {
-    if(!obj) {
-        return obj;
-    } else if(kss.isArray(obj)) {
-        var newArr = [], i = obj.length;
-        while(i--) {
-           newArr[i] = arguments.callee.call(null, obj[i]);
+        return first;
+    // 只传第一个参数则把对象继承到kss库中
+    } else if(typeof first === "object") {
+        for(var key in first) {
+            this[key] = first[key];
         }
-        return newArr;
-    } else if(kss.isFunction(obj) || obj instanceof Date || obj instanceof RegExp) {
-        return obj;
-    } else if(typeof obj === "object") {
-        var newObj = {};
-        for(var i in obj) {
-           newObj[i] = arguments.callee.call(null, obj[i]);
-        }
-        return newObj;
-    } else {
-        return obj;
     }
 };
 
 kss.extend({
+    // add at 2013.02.13
+    // 全局缓存
+    cache: {},
+    
+    // update at 2013.02.13
+    // 缓存数据操作
+    data: function(elem, key, value) {
+        if(typeof value === "undefined") {
+            if(kss.cache[elem] && kss.cache[elem][key]) {
+                return kss.cache[elem][key];
+            }
+            return null;
+        }
+        if(!kss.cache.hasOwnProperty(elem)) {
+            kss.cache[elem] = {};
+        }
+        kss.cache[elem][key] = value;
+    },
+    
     // add at 2012.12.12
-    queue: function(elem, name, func) {
-        if(!dataCache.hasOwnProperty(elem) || !kss.isArray(dataCache[elem][name])) {
+    // 深度复制
+    clone: function(obj) {
+        if(!obj) {
+            return obj;
+        } else if(kss.isArray(obj)) {
+            var newArr = [], i = obj.length;
+            while(i--) {
+               newArr[i] = arguments.callee.call(null, obj[i]);
+            }
+            return newArr;
+        } else if(kss.isFunction(obj) || obj instanceof Date || obj instanceof RegExp) {
+            return obj;
+        } else if(typeof obj === "object") {
+            var newObj = {};
+            for(var i in obj) {
+               newObj[i] = arguments.callee.call(null, obj[i]);
+            }
+            return newObj;
+        } else {
+            return obj;
+        }
+    }
+});
+
+kss.extend({
+    // add at 2012.12.12
+    queue: function(elem, name, fn) {
+        if(!kss.cache.hasOwnProperty(elem) || !kss.isArray(kss.cache[elem][name])) {
             kss.data(elem, name, []);
         }
-        if(kss.isFunction(func)) {
-            dataCache[elem][name].push(func);
+        if(kss.isFunction(fn)) {
+            kss.cache[elem][name].push(fn);
         }
     },
     
     // add at 2012.12.12
-    dequeue: function(elem, name, func) {
-        kss.queue(elem, name, func);
-        if(dataCache[elem][name][0]) {
-            func = dataCache[elem][name].shift();
-            func.call(elem);
+    dequeue: function(elem, name, fn) {
+        kss.queue(elem, name, fn);
+        if(kss.cache[elem][name][0]) {
+            fn = kss.cache[elem][name].shift();
+            fn.call(elem);
         }
     }
 });
@@ -565,8 +582,8 @@ kss.extend({
         }
     },
     
-    // return array
-    child: function(selector, parentNode) {
+    // update at 2013.02.14
+    children: function(selector, parentNode) {
         var elems = parentNode.childNodes;
         var match = /^([\w-]*)\.([\w-]+)$/.exec(selector);
         var ret = [];
@@ -641,9 +658,9 @@ kss.extend({
         return first;
     },
 
-    // update at 2012.11.20
+    // update at 2012.12.24
     trim: function(str) {
-        return (str || "").replace(/^\s+/g, "").replace(/\s+$/g, "");
+        return (str || "").replace(/(^\s*)|(\s*$)/g, "");
     },
     
     // set attribute
@@ -951,18 +968,22 @@ kss.extend({
     }
 });
 
-// style
+// 样式操作
 kss.extend({
-    // show hide
+    // add at 2012.12.12
+    // 显示元素
     show: function(elem) {
         var old = kss.data(elem, "olddisplay");
         elem.style.display = old || "";
         var display = kss.curCss(elem, "display");
         if(display == "none") {
+            // 非内联样式中如果设置了display:none，无论是原来是哪种盒子模型，都设置为block（暂定）
             elem.style.display = "block";
         }
     },
-
+    
+    // add at 2012.12.12
+    // 隐藏元素
     hide: function(elem) {
         var display = kss.curCss(elem, "display");
         if(display != "none") {
@@ -1179,6 +1200,6 @@ kss.uaMatch = function(ua) {
 // update at 2012.11.23
 kss.browser = kss.uaMatch(navigator.userAgent);
 
-window.kss = window.$k = kss;
+window.kss = window.$ = kss;
 
 })(window);
