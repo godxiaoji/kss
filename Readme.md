@@ -95,9 +95,25 @@
 
 ### 事件绑定
 
-* .on()
+* .on(type[, selector, data], fn)
 
-* .off()
+事件绑定。实现bind/live/delegate方法。
+
+bind方法实现：`$("div").on("click", {a:1,b:2}, function(e) {console.log(e.data)});`
+
+delegate方法实现：`$("div").on("click", "a", {a:1,b:2}, function(e) {console.log(e.data)});`
+
+live方法实现：`$(document).on("click", "a", functionA);`
+
+* .off(type[, selector], fn)
+
+事件解绑，实现unbind/die/undelegate方法，不传人函数则解绑响应类型绑定的所有函数。
+
+unbind方法实现：`$("div").off("click", functionA);`
+
+undelegate方法实现：`$("div").on("click", "a");`
+
+die方法实现：`$(document).on("click", "a", functionB);`
 
 * .ready()
 
@@ -219,7 +235,3 @@ cookie的读取与设置，具体使用方法可见[Cookie](https://github.com/g
 * $.isEmptyObject(param)
 
 判断传入的参数是否为空对象，没判断继承的属性。
-
-* $.data(elem, key, value)
-
-kss数据读取与存储。

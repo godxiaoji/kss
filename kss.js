@@ -2,7 +2,7 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 0.6.4
+ * @Version 0.7.0
  */
 (function(window, undefined) {
 
@@ -15,7 +15,9 @@ var document = window.document,
     navigator = window.navigator,
     
     toString = Object.prototype.toString,
-    push = Array.prototype.push;
+    push = Array.prototype.push,
+    
+    version = "0.7.0";
 
 // return array
 kss.fn = kss.prototype = {
@@ -231,17 +233,56 @@ kss.fn = kss.prototype = {
         }, [value]);
     },
     
-    bind: function(type, handler) {
-        // update at 2012.11.20
+    // add 2013.02.15
+    // 事件绑定(bind/live/delegate)
+    on: function(type, selector, data, fn) {
+        if(typeof type !== "string" || type == "") {
+            return this;
+        }
+        // (type, fn)
+        if(data == null && fn == null) {
+            fn = selector;
+			data = selector = undefined;
+        // (type, fn)
+        } else if(fn == null) {
+            if (typeof selector === "string") {
+				// (type, selector, fn)
+				fn = data;
+				data = undefined;
+			} else {
+				// (type, data, fn)
+				fn = data;
+				data = selector;
+				selector = undefined;
+			}
+        }
+        if(!kss.isFunction(fn)) {
+            fn = returnFalse;
+        }
         return kss.each(this, function() {
-            kss.event.add(this, type, handler);
-        }, [type, handler]);
+            kss.event.add(this, type, selector, data, fn);
+        }, [type, selector, data, fn]);
     },
     
-    unbind: function(type, handler) {
+    // add 2013.02.15
+    // 事件解绑(unbind/die/undelegate)
+    off: function(type, selector, fn) {
+        if(typeof type !== "string" || type == "") {
+            return this;
+        }
+        
+        // (type[, fn])
+        if(!selector || kss.isFunction(selector)) {
+            fn = selector;
+            selector = undefined;
+        }
+        
+        if(!fn) {
+            fn = undefined;
+        }
         return kss.each(this, function() {
-            kss.event.remove(this, type, handler);
-        }, [type, handler]);
+            kss.event.remove(this, type, selector, fn);
+        }, [type, selector, fn]);
     },
     
     ready: function(fn) {
@@ -303,19 +344,31 @@ kss.extend({
     // 全局缓存
     cache: {},
     
-    // update at 2013.02.13
+    // add at 2013.02.15
+    // 内部Key
+    expando: "kss_" + Math.random().toString().substr(2),
+    
+    // add at 2013.02.15
+    // 全局索引
+    guid: 1,
+    
+    // update at 2013.02.15
     // 缓存数据操作
     data: function(elem, key, value) {
+        var id = kss.expando;
         if(typeof value === "undefined") {
-            if(kss.cache[elem] && kss.cache[elem][key]) {
-                return kss.cache[elem][key];
+            if(elem[id] && kss.cache[elem[id]]) {
+                if(typeof kss.cache[elem[id]][key] !== "undefined") {
+                    return kss.cache[elem[id]][key];
+                }
             }
-            return null;
+            return undefined;
         }
-        if(!kss.cache.hasOwnProperty(elem)) {
-            kss.cache[elem] = {};
+        if(elem.nodeType) {
+            elem[id] = elem[id] || kss.guid++;
+            kss.cache[elem[id]] = kss.cache[elem[id]] || {};
+            kss.cache[elem[id]][key] = value;
         }
-        kss.cache[elem][key] = value;
     },
     
     // add at 2012.12.12
@@ -344,21 +397,26 @@ kss.extend({
 });
 
 kss.extend({
-    // add at 2012.12.12
+    // update at 2013.02.16
+    // 队列：入队
     queue: function(elem, name, fn) {
-        if(!kss.cache.hasOwnProperty(elem) || !kss.isArray(kss.cache[elem][name])) {
-            kss.data(elem, name, []);
+        var fns = kss.data(elem, name);
+        if(!fns || !kss.isArray(fns)) {
+            fns = [];
         }
         if(kss.isFunction(fn)) {
-            kss.cache[elem][name].push(fn);
+            fns.push(fn);
         }
+        kss.data(elem, name, fns);
     },
     
-    // add at 2012.12.12
-    dequeue: function(elem, name, fn) {
-        kss.queue(elem, name, fn);
-        if(kss.cache[elem][name][0]) {
-            fn = kss.cache[elem][name].shift();
+    // update at 2013.02.16
+    // 队列：出队并执行
+    dequeue: function(elem, name) {
+        var fns = kss.data(elem, name), fn;
+        if(fns && fns[0]) {
+            fn = fns.shift();
+            kss.data(elem, name, fns);
             fn.call(elem);
         }
     }
@@ -713,7 +771,7 @@ kss.extend({
     },
     // add at 2012.12.19
     // jsonp
-    getJSON: function(url, data, func) {
+    getJSON: function(url, data, fn) {
         if(typeof url !== "string") {
             return;
         }
@@ -741,8 +799,8 @@ kss.extend({
         window[name] = function(json) {
             kss("#"+name).remove();
             window[name] = undefined;
-            if(kss.isFunction(func)) {
-                func(json);
+            if(kss.isFunction(fn)) {
+                fn(json);
             }
         };
         
@@ -851,46 +909,103 @@ var ajax = {
     }
 };
 
+// add at 2013.02.16
+// 返回false函数
+function returnFalse() {
+	return false;
+}
+
 kss.event = {
-    // cache for attachEvent 
-    handle:{},
-    
-    add: function(elem, type, handler) {
-        // update at 2012.11.23
-        if(!elem.nodeType || typeof type !== "string" || elem.nodeType === 3 || elem.nodeType === 8) {
+    // update at 2013.02.15
+    // 事件绑定
+    add: function(elem, type, selector, data, fn) {
+        /* if(!elem.nodeType || typeof type !== "string" || elem.nodeType === 3 || elem.nodeType === 8) {
             return;
-        }
-        var eventHandler = handler;
-        if(window.addEventListener) {
-            elem.addEventListener(type, eventHandler, false);
-        } else if (document.attachEvent) {
-            // for lte ie8
-            // hack for attachEvent("this" point to [object window])
-            eventHandler = function() {
-                handler.call(elem);
-            };
-            kss.event.handle[handler] = eventHandler;
-            elem.attachEvent("on" + type, eventHandler);
+        } */
+        var handleObj = {}, handler, id = kss.expando;
+        // 事件委托
+        if(selector) {
+            handler = function(e) {
+                var elems = $(elem).find(selector),
+                    evt = window.event ? window.event : e,
+                    target = evt.target || evt.srcElement;
+                evt.data = data;
+                for(var i = 0; i < elems.length; i++) {
+                    if(elems[i] == target) {
+                        fn.call(target, evt);
+                        break;
+                    }
+                }
+            }
+        // 直接绑定
         } else {
-            elem["on" + type] = eventHandler;
+            handler = function(e) {
+                var evt = window.event ? window.event : e;
+                evt.data = data;
+                fn.call(elem, evt);
+            };
+        }
+        
+        // 事件缓存
+        var events = kss.data(elem, "events");
+        if(!events) {
+            events = {};
+        }
+        
+        handleObj.handler = handler;
+        handleObj.selector = selector;
+        handleObj.data = data;
+        handleObj.guid = fn[id] = fn[id] || kss.guid++;
+        
+        events[type] = events[type] || [];
+        events[type].push(handleObj);
+        
+        kss.data(elem, "events", events);
+        
+        if(window.addEventListener) {
+            elem.addEventListener(type, handler, false);
+        } else if (document.attachEvent) {
+            elem.attachEvent("on" + type, handler);
+        } else {
+            elem["on" + type] = handler;
         }
     },
     
-    remove: function(elem, type, handler) {
-        // update at 2012.11.23
-        if(!elem.nodeType || typeof type !== "string" || elem.nodeType === 3 || elem.nodeType === 8) {
-            return false;
+    // update at 2013.02.15
+    // 事件解绑
+    remove: function(elem, type, selector, fn) {
+        var handleObj, handler,
+            id = kss.expando,
+            events = kss.data(elem, "events"), typeObj = [];
+        if(!elem[id] || !events || !events[type]) {
+            return;
         }
-        var eventHandler = handler;
-        if(elem.removeEventListener) {
-            elem.removeEventListener(type, eventHandler, false);
-        } else if (document.detachEvent) {
-            eventHandler = kss.event.handle[handler];
-            elem.detachEvent("on" + type, eventHandler);
-        } else {
-            elem["on" + type] = null;
+        
+        if(kss.isFunction(fn) && !fn[id]) {
+            return;
         }
-        elem = null;
+        
+        for(var i = 0; i < events[type].length; i++) {
+            handleObj = events[type][i];
+            if(typeof fn === "undefined" || 
+                (typeof selector !== "undefined" && handleObj.selector === selector && fn[id] === handleObj.guid) || 
+                (typeof selector === "undefined" && fn[id] === handleObj.guid)) {
+                
+                handler = handleObj.handler;
+                
+                if(elem.removeEventListener) {
+                    elem.removeEventListener(type, handler, false);
+                } else if (document.detachEvent) {
+                    elem.detachEvent("on" + type, handler);
+                } else {
+                    elem["on" + type] = null;
+                }
+            } else {
+                typeObj.push(handleObj);
+            }
+        }
+        events[type] = typeObj;
+        kss.data(elem, "events", events);
     }
 };
 
