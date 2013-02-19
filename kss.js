@@ -2,7 +2,7 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 0.7.0
+ * @Version 0.7.3
  */
 (function(window, undefined) {
 
@@ -17,7 +17,7 @@ var document = window.document,
     toString = Object.prototype.toString,
     push = Array.prototype.push,
     
-    version = "0.7.0";
+    version = "0.7.3";
 
 // return array
 kss.fn = kss.prototype = {
@@ -623,10 +623,9 @@ kss.extend({
             } else {
                 // for IE
                 var elems = (tag === "*" && parentNode.all)? parentNode.all : parentNode.getElementsByTagName(tag),
-                    match = new RegExp("(^|\\s)" + searchClass + "(\\s|$)"),
                     ret = [];
                 for(var i = 0 ; i < elems.length; i++) {
-                    if(match.test(elems[i].className)) {
+                    if(kss.hasClass(elems[i], searchClass)) {
                         ret.push(elems[i]);
                     }
                 }
@@ -899,7 +898,7 @@ var ajax = {
             xhr.open(s.type, url, s.async);
             xhr.send();
         } else if(s.type === "POST") {
-            var data = ajax.queryString(s);
+            var data = ajax.queryString(s.data);
             xhr.open(s.type, s.url, s.async);
             xhr.setRequestHeader("Content-type", s.contentType);
             xhr.send(data); 
@@ -919,9 +918,6 @@ kss.event = {
     // update at 2013.02.15
     // 事件绑定
     add: function(elem, type, selector, data, fn) {
-        /* if(!elem.nodeType || typeof type !== "string" || elem.nodeType === 3 || elem.nodeType === 8) {
-            return;
-        } */
         var handleObj = {}, handler, id = kss.expando;
         // 事件委托
         if(selector) {
@@ -1083,8 +1079,69 @@ kss.extend({
     }
 });
 
+kss.fn.extend({
+    // add at 2013.02.19
+    // 判断元素是否有对应Class
+    hasClass: function(className) {
+        if(typeof className !== "string") {
+            return false;
+        }
+        className = " " + className + " ";
+		for(var i = 0, len = this.length; i < len; i++ ) {
+			if(this[i].nodeType === 1 && (" " + this[i].className + " ").indexOf(className) >= 0) {
+				return true;
+			}
+		}
+		return false;
+    },
+    
+    // add at 2013.02.19
+    // 添加Class
+    addClass: function(className) {
+        if(typeof className !== "string") {
+            return;
+        }
+        return kss.each(this, function() {
+            kss.addClass(this, className);
+        }, [className]);
+    },
+    
+    // add at 2013.02.19
+    // 删除Class
+    removeClass: function(className) {
+        if(typeof className !== "string") {
+            return;
+        }
+        return kss.each(this, function() {
+            kss.removeClass(this, className);
+        }, [className]);
+    }
+});
+
 // 样式操作
 kss.extend({
+    // add at 2013.02.19
+    // 判断元素是否有对应Class
+    hasClass: function(elem, className) {
+        return elem.nodeType === 1 && (" " + elem.className + " ").indexOf(" " + className + " ") >= 0;
+    },
+    
+    // add at 2013.02.19
+    // 添加Class
+    addClass: function(elem, className) {
+        if(elem.nodeType === 1 && !kss.hasClass(elem, className)) {
+            elem.className = kss.trim(elem.className + " " + className + " ");
+        }
+    },
+    
+    // add at 2013.02.19
+    // 删除Class
+    removeClass: function(elem, className) {
+        if(elem.nodeType === 1) {
+            elem.className = kss.trim((" " + elem.className + " ").replace(" " + className + " ", " "));
+        }
+    },
+    
     // add at 2012.12.12
     // 显示元素
     show: function(elem) {
