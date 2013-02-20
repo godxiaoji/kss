@@ -1,4 +1,4 @@
-# Kss Javascript Class Library
+# Kss Javascript Library
 
 这是一个Javascript的小型类库，开始我把他称为框架，后来想了想，称为库比较合适。
 这里面的api兼容了jQuery的写法，也借鉴了不少jQuery的设计模式。特点是小，继承了很多常用的方法。
