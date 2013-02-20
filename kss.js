@@ -897,7 +897,7 @@ var ajax = {
         if(s.type === "GET") {
             var data = kss.toQueryString(s.data);
             if(s.cache === false) {
-                data += (data === "" ? "" : "&") + "kss_time=" + kss.now();
+                data += (data === "" ? "" : "&") + "_=" + kss.now();
             }
             var url = s.url + (s.url.indexOf("?") === -1 ? "?" : "&") + data;
             xhr.open(s.type, url, s.async);
