@@ -85,17 +85,17 @@
 
 ### 样式操作
 
-*.hasClass(name)
+* .hasClass(name)
 
 判断元素是否存储对应class。
 
 注：只有元素集里面有一个有相应的class，就返回true;
 
-*.addClass(name)
+* .addClass(name)
 
 添加class。
 
-*.removeClass(name)
+* .removeClass(name)
 
 删除class。
 
