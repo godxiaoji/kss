@@ -49,6 +49,14 @@
 
 注：可能会遇到在某些浏览器下无法设置属性的问题。
 
+* .removeAttr(name)
+
+删除元素相应属性。
+
+* .prop(name)
+
+同attr(), 某些元素属性特殊返回，如`checked`，返回true或false。
+
 * .val([value])
 
 只传入第一个参数，返回kss对象中第一个表格类节点（input、button等）的value值。
@@ -76,6 +84,20 @@
 删除相应节点。
 
 ### 样式操作
+
+*.hasClass(name)
+
+判断元素是否存储对应class。
+
+注：只有元素集里面有一个有相应的class，就返回true;
+
+*.addClass(name)
+
+添加class。
+
+*.removeClass(name)
+
+删除class。
 
 *.css(name[, value])
 
@@ -231,6 +253,10 @@ cookie的读取与设置，具体使用方法可见[Cookie](https://github.com/g
 * $.isArray(param)
 
 判断传入的参数是否为数组。
+
+* $.isScalar(param)
+
+判断传入的参数是否为标量（string/number/boolean）。
 
 * $.isEmptyObject(param)
 

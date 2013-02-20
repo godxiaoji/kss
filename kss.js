@@ -2,7 +2,7 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 0.7.3
+ * @Version 0.7.7
  */
 (function(window, undefined) {
 
@@ -17,7 +17,7 @@ var document = window.document,
     toString = Object.prototype.toString,
     push = Array.prototype.push,
     
-    version = "0.7.3";
+    version = "0.7.7";
 
 // return array
 kss.fn = kss.prototype = {
@@ -140,24 +140,10 @@ kss.fn = kss.prototype = {
         return this.push(ret);
     },
     
-    attr: function(name, value) {
-        // update at 2012.11.21
-        // GET: only get the first node attribute
-        if(typeof value === "undefined") {
-            if(this[0] && this[0].nodeType === 1) {
-                return this[0].getAttribute(name);
-            } else {
-                return undefined;
-            }
-        }
-        return kss.each(this, function() {
-            kss.attr(this, name, value);
-        }, [name, value]);
-    },
-    
+    // update at 2013.02.19
+    // 遍历元素并执行函数
     each: function(fn, args) {
-        // update at 2012.11.20
-        if(kss.isFunction(fn) && kss.isArray(args)) {
+        if(kss.isFunction(fn)) {
             return kss.each(this, fn, args);
         } else {
             return this;
@@ -199,21 +185,6 @@ kss.fn = kss.prototype = {
                 }
             }
         }, [value]);
-    },
-    
-    css: function(name, value) {
-        // update at 2012.11.22
-        // GET: only get the first node current css
-        if(typeof value === "undefined") {
-            if(this[0] && this[0].nodeType === 1) {
-                return kss.curCss(this[0], name);
-            } else {
-                return undefined;
-            }
-        }
-        return kss.each(this, function() {
-            kss.setCss(this, name, value);
-        }, [name, value]);
     },
     
     val: function(value) {
@@ -294,18 +265,6 @@ kss.fn = kss.prototype = {
            readyList.push(fn);  
         }        
         return this;
-    },
-    
-    show: function() {
-        return kss.each(this, function() {
-            kss.show(this);
-        });
-    },
-    
-    hide: function() {
-        return kss.each(this, function() {
-            kss.hide(this);
-        });
     },
     
     remove: function() {
@@ -587,6 +546,12 @@ kss.extend({
     // add at 2012.11.20
     isArray: function(obj) {
         return toString.call(obj) === "[object Array]";
+    },
+    
+    // add at 2013.02.19
+    // 判断是否标量
+    isScalar: function(obj) {
+        return typeof obj === "string" ||  typeof obj === "number" || typeof obj === "boolean";
     }
 });
 
@@ -672,21 +637,23 @@ kss.extend({
         }
     },
     
-    each: function(obj, callback, args) {
+    // update at 2013.02.19
+    // kss对象遍历
+    each: function(kssObj, callback, args) {
         if(typeof args === "undefined") {
-            for(var i = 0; i < obj.length; i++) { 
-                if(callback.call(obj[i], i, obj[i]) === false) { 
+            for(var i = 0; i < kssObj.length; i++) { 
+                if(callback.call(kssObj[i], i, kssObj[i]) === false) { 
                     break;
                 }
             }
-        } else {
-            for(var i = 0; i < obj.length; i++) { 
-                if(callback.apply(obj[i], args) === false) { 
+        } else if(kss.isArray(args)) {
+            for(var i = 0; i < kssObj.length; i++) { 
+                if(callback.apply(kssObj[i], args) === false) { 
                     break;
                 }
             }
         }
-        return obj;
+        return kssObj;
     }
 });
 
@@ -718,14 +685,6 @@ kss.extend({
     // update at 2012.12.24
     trim: function(str) {
         return (str || "").replace(/(^\s*)|(\s*$)/g, "");
-    },
-    
-    // set attribute
-    attr: function(elem, name, value) {
-        if (!elem || elem.nodeType == 3 || elem.nodeType == 8)
-            return undefined;
-        
-        elem.setAttribute(name, value);
     },
 
     // remove node
@@ -1079,6 +1038,85 @@ kss.extend({
     }
 });
 
+
+// 属性操作原型链
+kss.fn.extend({
+    // update at 2013.02.19
+    // 读取或设置元素属性
+    attr: function(name, value) {
+        if(typeof name !== "string") {
+            return this;
+        }
+        if(typeof value === "undefined") {
+            if(this[0] && this[0].nodeType === 1) {
+                return this[0].getAttribute(name);
+            } else {
+                return undefined;
+            }
+        } else if(kss.isScalar(value)) {
+            return kss.each(this, function() {
+                kss.setAttr(this, name, value);
+            });
+        }
+        return this;
+    },
+    
+    // add at 2013.02.19
+    // 删除元素指定属性
+    removeAttr: function(name) {
+        if(typeof name !== "string") {
+            return this;
+        }
+        return kss.each(this, function() {
+            kss.removeAttr(this, name);
+        });
+    },
+    
+    // add at 2013.02.19
+    // 特殊属性处理
+    prop: function(name, value) {
+        if(typeof value === "undefined") {
+            var prop =  this.attr(name);
+            if(kss.sepProp.indexOf(name) >= 0) {
+                return typeof prop === "string" && (prop === name || prop === "");
+            }
+            return prop;
+        }
+        if(kss.sepProp.indexOf(name) >= 0 && typeof value === "boolean") {
+            if(value) {
+                value = name;
+            } else {
+                return this.removeAttr(name);
+            }
+        }
+        return this.attr(name, value);
+    }
+});
+
+// 属性操作
+kss.extend({
+    // update at 2013.02.19
+    // 设置元素属性（只支持元素）
+    setAttr: function(elem, name, value) {
+        if(elem.nodeType === 1) {
+            elem.setAttribute(name, value);
+        }
+    },
+    
+    // add at 2013.02.19
+    // 删除元素指定属性（只支持元素）
+    removeAttr: function(elem, name) {
+        if(elem.nodeType === 1) {
+            elem.removeAttribute(name);
+        }
+    },
+    
+    // add at 2013.02.19
+    // 需要特殊处理的属性
+    sepProp: ['disabled', 'checked', 'selected', 'multiple', 'readonly', 'async', 'autofocus']
+});
+
+// 样式操作原型链
 kss.fn.extend({
     // add at 2013.02.19
     // 判断元素是否有对应Class
@@ -1103,7 +1141,7 @@ kss.fn.extend({
         }
         return kss.each(this, function() {
             kss.addClass(this, className);
-        }, [className]);
+        });
     },
     
     // add at 2013.02.19
@@ -1114,7 +1152,36 @@ kss.fn.extend({
         }
         return kss.each(this, function() {
             kss.removeClass(this, className);
-        }, [className]);
+        });
+    },
+
+    // update at 2012.11.22
+    // GET: only get the first node current css
+    css: function(name, value) {
+        if(typeof value === "undefined") {
+            if(this[0] && this[0].nodeType === 1) {
+                return kss.curCss(this[0], name);
+            } else {
+                return undefined;
+            }
+        }
+        return kss.each(this, function() {
+            kss.setCss(this, name, value);
+        });
+    },
+    
+    // add at 2012.11.26
+    show: function() {
+        return kss.each(this, function() {
+            kss.show(this);
+        });
+    },
+    
+    // add at 2012.11.26
+    hide: function() {
+        return kss.each(this, function() {
+            kss.hide(this);
+        });
     }
 });
 
