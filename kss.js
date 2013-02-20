@@ -2,7 +2,7 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 0.7.7
+ * @Version 0.8.0
  */
 (function(window, undefined) {
 
@@ -17,7 +17,7 @@ var document = window.document,
     toString = Object.prototype.toString,
     push = Array.prototype.push,
     
-    version = "0.7.7";
+    version = "0.8.0";
 
 // return array
 kss.fn = kss.prototype = {
@@ -305,7 +305,7 @@ kss.extend({
     
     // add at 2013.02.15
     // 内部Key
-    expando: "kss_" + Math.random().toString().substr(2),
+    expando: "kss" + Math.random().toString().substr(2),
     
     // add at 2013.02.15
     // 全局索引
@@ -673,6 +673,11 @@ kss.extend({
         return arr;
     },
     
+    // add at 2013.02.20
+    rand: function() {
+        return Math.random().toString().substr(2);
+    },
+    
     // array++
     merge: function(first, second) {
         var i = first.length, j = 0;
@@ -727,45 +732,101 @@ kss.extend({
     ajax: function(settings) {
         return new ajax.init(settings);
     },
-    // add at 2012.12.19
+    
+    // add at 2013.02.20
+    // 创建Script
+    createScript: function(url) {
+        var script = document.createElement("script");
+        script.type = "text/javascript";
+        if(typeof url === 'string') {
+            script.src = url;
+        }
+        return script;
+    },
+    
+    // update 2012.12.17
+    toQueryString: function(data) {
+        var str = "";
+        if(typeof data === "string") {
+            str = data;
+        } else if(typeof data === "object") {
+            for(var key in data) {
+                str += "&" + key + "=" + encodeURIComponent(data[key]);
+            }
+        }
+        str = str.substr(1);
+        return str;
+    },
+    
+    // update at 2013.02.20
     // jsonp
     getJSON: function(url, data, fn) {
-        if(typeof url !== "string") {
-            return;
+        // (url, fn)
+        if(fn == null) {
+            fn = data;
+            data = undefined;
         }
         
-        var name,
-            data = ajax.queryString(data);
+        var name, match, script;
         
-        data += (data === "" ? "" : "&") + "kss_time=" + kss.now();
-        url = url + (url.indexOf("?") === -1 ? "?" : "&") + data;
+        data = kss.toQueryString(data);
+        data += (data === "" ? "" : "&") + "_=" + kss.now();
+        url += (url.indexOf("?") === -1 ? "?" : "&") + data;
         
-        var match = /callback=(\w+)/.exec(url);
+        match = /callback=(\w+)/.exec(url);
         if(match && match[1]) {
             name = match[1];
         } else {
-            name = "kss_jsonp_" + kss.now() + '_' + Math.random().toString().substr(2);
-            url = url.replace("callback=?", "callback=" + name);
-            url = url.replace("callback=%3F", "callback=" + name);
+            name = "kss" + kss.rand() + "_" + kss.now();
+            url = url.replace("callback=?", "callback=" + name).replace("callback=%3F", "callback=" + name);
         }
         
-        var jsonp = document.createElement("script");
-        jsonp.type = "text/javascript";
-        jsonp.src = url;
-        jsonp.id = name;
+        script = kss.createScript(url);
         
         window[name] = function(json) {
-            kss("#"+name).remove();
-            window[name] = undefined;
+            kss(script).remove();
             if(kss.isFunction(fn)) {
-                fn(json);
+                fn.call(window, json);
             }
+            delete window[name];
         };
         
-        var head = kss("head");
-        if(head[0]) {
-            head[0].appendChild(jsonp);
+        kss("head")[0].appendChild(script);
+    },
+    
+    // add at 2013.02.20
+    // 远程载入js
+    getScript: function(url, data, fn) {
+        if(fn == null) {
+            fn = data;
+            data = undefined;
         }
+    
+        data = kss.toQueryString(data);
+        data += (data === "" ? "" : "&") + "_=" + kss.now();
+        url += (url.indexOf("?") === -1 ? "?" : "&") + data;
+        
+        script = kss.createScript(url);
+        
+        if(document.all) {
+            script.onreadystatechange = function() {
+                if(script.readyState === 4 || this.readyState === "complete" || this.readyState == "loaded") {
+                    kss(script).remove();
+                    if(kss.isFunction(fn)) {
+                        fn.call(window);
+                    }
+                }
+            };
+        } else {
+            script.onload = function() {
+                kss(script).remove();
+                if(kss.isFunction(fn)) {
+                    fn.call(window);
+                }
+            };
+        }
+        
+        kss("head")[0].appendChild(script);
     }
 });
 
@@ -794,21 +855,6 @@ var ajax = {
         success: function(data, status) {},
         error: function(xhr, status) {},
         complete: function(xhr, status) {}
-    },
-    
-    // update 2012.12.17
-    queryString: function(data) {
-        var ret = "";
-        if(typeof data === "string") {
-            ret = data;
-        }
-        else if(typeof data === "object") {
-            for(var key in data) {
-                ret += "&" + key + "=" + encodeURIComponent(data[key]);
-            }
-        }
-        ret = ret.substr(1);
-        return ret;
     },
     
     // update 2012.12.14
@@ -849,7 +895,7 @@ var ajax = {
             return;
         }
         if(s.type === "GET") {
-            var data = ajax.queryString(s.data);
+            var data = kss.toQueryString(s.data);
             if(s.cache === false) {
                 data += (data === "" ? "" : "&") + "kss_time=" + kss.now();
             }
@@ -857,7 +903,7 @@ var ajax = {
             xhr.open(s.type, url, s.async);
             xhr.send();
         } else if(s.type === "POST") {
-            var data = ajax.queryString(s.data);
+            var data = kss.toQueryString(s.data);
             xhr.open(s.type, s.url, s.async);
             xhr.setRequestHeader("Content-type", s.contentType);
             xhr.send(data); 
@@ -874,7 +920,7 @@ function returnFalse() {
 }
 
 kss.event = {
-    // update at 2013.02.15
+    // update at 2013.02.20
     // 事件绑定
     add: function(elem, type, selector, data, fn) {
         var handleObj = {}, handler, id = kss.expando;
@@ -884,6 +930,10 @@ kss.event = {
                 var elems = $(elem).find(selector),
                     evt = window.event ? window.event : e,
                     target = evt.target || evt.srcElement;
+                // 统一事件阻止
+                evt.stopPropagation = evt.stopPropagation || function() {
+                    window.event.cancelBubble = true;
+                };
                 evt.data = data;
                 for(var i = 0; i < elems.length; i++) {
                     if(elems[i] == target) {
@@ -896,6 +946,9 @@ kss.event = {
         } else {
             handler = function(e) {
                 var evt = window.event ? window.event : e;
+                evt.stopPropagation = evt.stopPropagation || function() {
+                    window.event.cancelBubble = true;
+                };
                 evt.data = data;
                 fn.call(elem, evt);
             };

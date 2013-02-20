@@ -179,12 +179,20 @@ DOM文档加载完毕执行，不同于onload，不包括加载完图片等。�
         }
     });
 
-* $.getJSON(url, data, fn)
+* $.getJSON(url[, data, fn])
 
 跨域获取数据。如：
 
     $.getJSON: function("travisup.com", {id:1}, function(data) {
         console.log(data);
+    });
+    
+* $.getScript(url[, data, fn])
+
+跨域载入Javascript。如：
+
+    $.getScript: function("travisup.com", function() {
+        console.log('loaded');
     });
 
 ### 扩展方法
