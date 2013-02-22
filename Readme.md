@@ -137,6 +137,14 @@ undelegate方法实现：`$("div").on("click", "a");`
 
 die方法实现：`$(document).on("click", "a", functionB);`
 
+* .trigger(type)
+
+触发事件，如click，focus等等
+
+* .click([data, fn])/focus/blur...
+
+简便封装，可绑定可触发。
+
 * .ready()
 
 DOM文档加载完毕执行，不同于onload，不包括加载完图片等。如：

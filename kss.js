@@ -204,69 +204,6 @@ kss.fn = kss.prototype = {
         }, [value]);
     },
     
-    // add 2013.02.15
-    // 事件绑定(bind/live/delegate)
-    on: function(type, selector, data, fn) {
-        if(typeof type !== "string" || type == "") {
-            return this;
-        }
-        // (type, fn)
-        if(data == null && fn == null) {
-            fn = selector;
-			data = selector = undefined;
-        // (type, fn)
-        } else if(fn == null) {
-            if (typeof selector === "string") {
-				// (type, selector, fn)
-				fn = data;
-				data = undefined;
-			} else {
-				// (type, data, fn)
-				fn = data;
-				data = selector;
-				selector = undefined;
-			}
-        }
-        if(!kss.isFunction(fn)) {
-            fn = returnFalse;
-        }
-        return kss.each(this, function() {
-            kss.event.add(this, type, selector, data, fn);
-        }, [type, selector, data, fn]);
-    },
-    
-    // add 2013.02.15
-    // 事件解绑(unbind/die/undelegate)
-    off: function(type, selector, fn) {
-        if(typeof type !== "string" || type == "") {
-            return this;
-        }
-        
-        // (type[, fn])
-        if(!selector || kss.isFunction(selector)) {
-            fn = selector;
-            selector = undefined;
-        }
-        
-        if(!fn) {
-            fn = undefined;
-        }
-        return kss.each(this, function() {
-            kss.event.remove(this, type, selector, fn);
-        }, [type, selector, fn]);
-    },
-    
-    ready: function(fn) {
-        // add at 2012.11.18
-        kss.bindReady();
-        if (kss.isReady) {
-           fn.call(document, kss);
-        } else if(readyList) {
-           readyList.push(fn);  
-        }        
-        return this;
-    },
-    
     remove: function() {
         for (var i = 0; i < this.length; i++) {
             kss.remove(this[i]);
@@ -919,6 +856,89 @@ function returnFalse() {
 	return false;
 }
 
+// add at 2013.02.22
+// 事件函数
+kss.each(("blur focus focusin focusout load resize scroll unload click dblclick " +
+	"mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave " +
+	"change select submit keydown keypress keyup error contextmenu").split(" "), function(i, name) {
+    kss.fn[name] = function(data, fn) {
+        return  arguments.length > 0 ?
+			this.on(name, null, data, fn) : 
+            this.trigger(name);
+    };
+});
+
+kss.fn.extend({
+    // add 2013.02.15
+    // 事件绑定(bind/live/delegate)
+    on: function(type, selector, data, fn) {
+        if(typeof type !== "string" || type == "") {
+            return this;
+        }
+        // (type, fn)
+        if(data == null && fn == null) {
+            fn = selector;
+			data = selector = undefined;
+        // (type, fn)
+        } else if(fn == null) {
+            if (typeof selector === "string") {
+				// (type, selector, fn)
+				fn = data;
+				data = undefined;
+			} else {
+				// (type, data, fn)
+				fn = data;
+				data = selector;
+				selector = undefined;
+			}
+        }
+        if(!kss.isFunction(fn)) {
+            fn = returnFalse;
+        }
+        return kss.each(this, function() {
+            kss.event.add(this, type, selector, data, fn);
+        }, [type, selector, data, fn]);
+    },
+    
+    // add 2013.02.15
+    // 事件解绑(unbind/die/undelegate)
+    off: function(type, selector, fn) {
+        if(typeof type !== "string" || type == "") {
+            return this;
+        }
+        
+        // (type[, fn])
+        if(!selector || kss.isFunction(selector)) {
+            fn = selector;
+            selector = undefined;
+        }
+        
+        if(!fn) {
+            fn = undefined;
+        }
+        return kss.each(this, function() {
+            kss.event.remove(this, type, selector, fn);
+        }, [type, selector, fn]);
+    },
+    
+    trigger: function(type) {
+        return kss.each(this, function() {
+            kss.event.trigger(this, type);
+        });
+    },
+    
+    ready: function(fn) {
+        // add at 2012.11.18
+        kss.bindReady();
+        if (kss.isReady) {
+           fn.call(document, kss);
+        } else if(readyList) {
+           readyList.push(fn);  
+        }        
+        return this;
+    }
+});
+
 kss.event = {
     // update at 2013.02.20
     // 事件绑定
@@ -937,8 +957,7 @@ kss.event = {
                 evt.data = data;
                 for(var i = 0; i < elems.length; i++) {
                     if(elems[i] == target) {
-                        fn.call(target, evt);
-                        break;
+                        return fn.call(target, evt);
                     }
                 }
             }
@@ -950,7 +969,7 @@ kss.event = {
                     window.event.cancelBubble = true;
                 };
                 evt.data = data;
-                fn.call(elem, evt);
+                return fn.call(elem, evt);
             };
         }
         
@@ -1014,6 +1033,18 @@ kss.event = {
         }
         events[type] = typeObj;
         kss.data(elem, "events", events);
+    },
+    
+    trigger: function(elem, event) {
+        elem[event].call(elem);
+        /* if(document.createEventObject) {
+            var evt = document.createEventObject();
+            return elem.fireEvent("on"+event, evt);
+        } else {
+            var evt = document.createEvent("HTMLEvents");
+            evt.initEvent(event, true, true); 
+            return !elem.dispatchEvent(evt);
+        } */
     }
 };
 
