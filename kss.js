@@ -2,7 +2,7 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 0.8.0
+ * @Version 0.8.1
  */
 (function(window, undefined) {
 
@@ -17,7 +17,7 @@ var document = window.document,
     toString = Object.prototype.toString,
     push = Array.prototype.push,
     
-    version = "0.8.0";
+    version = "0.8.1";
 
 // return array
 kss.fn = kss.prototype = {
@@ -731,7 +731,7 @@ kss.extend({
         kss("head")[0].appendChild(script);
     },
     
-    // add at 2013.02.20
+    // add at 2013.02.22
     // 远程载入js
     getScript: function(url, data, fn) {
         if(fn == null) {
@@ -747,11 +747,12 @@ kss.extend({
         
         if(document.all) {
             script.onreadystatechange = function() {
-                if(script.readyState === 4 || this.readyState === "complete" || this.readyState == "loaded") {
-                    kss(script).remove();
+                if(this.readyState === "complete" || this.readyState == "loaded") {
                     if(kss.isFunction(fn)) {
                         fn.call(window);
                     }
+                    script.onreadystatechange = null;
+                    kss(script).remove();
                 }
             };
         } else {
@@ -760,6 +761,8 @@ kss.extend({
                 if(kss.isFunction(fn)) {
                     fn.call(window);
                 }
+                script.onload = null;
+                kss(script).remove();
             };
         }
         
@@ -787,7 +790,7 @@ var ajax = {
         cache: true,
         timeout: null,
         contentType: "application/x-www-form-urlencoded",
-        dataType: null,
+        dataType: "",
         beforeSend: function(xhr) {},
         success: function(data, status) {},
         error: function(xhr, status) {},
