@@ -2,7 +2,7 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 0.8.1
+ * @Version 0.8.2
  */
 (function(window, undefined) {
 
@@ -17,7 +17,7 @@ var document = window.document,
     toString = Object.prototype.toString,
     push = Array.prototype.push,
     
-    version = "0.8.1";
+    version = "0.8.2";
 
 // return array
 kss.fn = kss.prototype = {
@@ -61,8 +61,13 @@ kss.fn = kss.prototype = {
     push: push,
     context: document,
     
-    push: function(elems) {
-        // update at 2012.12.11
+    // add at 2013.02.25
+    size: function() {
+        return this.length;
+    },
+    
+    // update at 2012.12.11
+    pushStack: function(elems) {
         var ret = kss();
         for(var i = 0; i < elems.length; i++) {
             ret[i] = elems[i];
@@ -70,7 +75,9 @@ kss.fn = kss.prototype = {
         ret.length = elems.length;
         return ret;
     },
-    
+
+    // update at 2012.11.21
+    // allow all number
     eq: function(key) {
         // update at 2012.11.21
         // allow all number
@@ -83,11 +90,11 @@ kss.fn = kss.prototype = {
             }
             ret[0] = this[key];
         }
-        return this.push(ret);
+        return this.pushStack(ret);
     },
     
+    // update at 2012.12.11
     find: function(selector) {
-        // update at 2012.12.11
         if(typeof selector !== "string") return kss();
         
         var pos = selector.indexOf(" ");
@@ -105,7 +112,7 @@ kss.fn = kss.prototype = {
                 ret = kss.merge(ret, temp);
             }
         }
-        var obj = this.push(ret);
+        var obj = this.pushStack(ret);
         if(children) {
             return obj.find(children);
         }
@@ -123,21 +130,7 @@ kss.fn = kss.prototype = {
                 ret = kss.merge(ret, temp);
             }
         }
-        return this.push(ret);
-    },
-    
-    parent: function() {
-        // update at 2012.11.21
-        var ret = [], parent;
-        for(var i = 0, len = this.length; i < len; i++) {
-            parent = this[i].parentNode;
-            if(parent && parent.nodeType !== 11) {
-                ret.push(parent);
-            }
-            // filter repeat elem
-            ret = kss.uniq(ret);
-        }
-        return this.push(ret);
+        return this.pushStack(ret);
     },
     
     // update at 2013.02.19
@@ -236,6 +229,205 @@ kss.fn.extend = kss.extend = function(first, second) {
 };
 
 kss.extend({
+    // add at 2012.11.20
+    isFunction: function(obj) {
+        return toString.call(obj) === "[object Function]";
+    },
+    
+    // add at 2012.11.20
+    isArray: function(obj) {
+        return toString.call(obj) === "[object Array]";
+    },
+        
+    // add at 2012.11.22
+    isEmptyObject: function(obj) {
+        for(var name in obj) {
+            return false;
+        }
+        return true;
+    },
+    
+    // add at 2013.02.19
+    // 判断是否标量
+    isScalar: function(obj) {
+        return typeof obj === "string" ||  typeof obj === "number" || typeof obj === "boolean";
+    }
+});
+
+kss.fn.extend({
+    // update at 2012.11.21
+    // 获取元素父节点
+    parent: function() {
+        // update at 2012.11.21
+        var ret = [], parent;
+        for(var i = 0, len = this.length; i < len; i++) {
+            parent = this[i].parentNode;
+            if(parent && parent.nodeType !== 11) {
+                ret.push(parent);
+            }
+            // filter repeat elem
+            ret = kss.uniq(ret);
+        }
+        return this.pushStack(ret);
+    },
+    
+    // add 2013.02.25
+    // 返回元素之后第一个兄弟节点
+    next: function() {
+        return this[0] ? this.pushStack(kss.dir(this[0], "nextSibling", this[0], true)) : kss();
+    },
+    
+    // add 2013.02.25
+    // 返回元素之后所有兄弟节点
+    nextAll: function() {
+        return this[0] ? this.pushStack(kss.dir(this[0], "nextSibling", this[0])) : kss();
+    },
+    
+    // add 2013.02.25
+    // 返回元素之前第一个兄弟节点
+    prev: function() {
+        return this[0] ? this.pushStack(kss.dir(this[0], "previousSibling", this[0], true)) : kss();
+    },
+    
+    // add 2013.02.25
+    // 返回元素之前所有兄弟节点
+    prevAll: function() {
+        return this[0] ? this.pushStack(kss.dir(this[0], "previousSibling", this[0])) : kss();
+    },
+    
+    // add 2013.02.25
+    // 返回除自身以外所有兄弟节点
+    siblings: function() {
+        return this[0] ? this.pushStack(kss.dir(this[0].parentNode.firstChild, "nextSibling", this[0])) : kss();
+    }
+});
+
+var rSelectId = /^#([\w-]+)$/,
+    rSelectClass = /^([\w-]*)\.([\w-]+)$/,
+    rSelectTag = /^\w+$/;
+
+kss.extend({
+    // return array
+    find: function(selector, parentNode) {
+        // $k("#id")
+        var match = rSelectId.exec(selector);
+        if(match && match[1]) {
+            var elem = document.getElementById(match[1]),
+                ret = [];
+            if(elem) {
+                ret[0] = elem;
+            }
+            return ret;
+        }
+        // $k(".class")
+        match = rSelectClass.exec(selector);
+        if(match && match[2]) {
+            var searchClass = match[2],
+                tag = match[1] || "*";
+            if(document.getElementsByClassName) {
+                var elems = parentNode.getElementsByClassName(searchClass),
+                    ret = [];
+                if(tag === "*") {
+                    return elems;
+                }
+                for(var i = 0, len = elems.length; i < len; i++) {
+                    if(elems[i].tagName === tag.toUpperCase()) {
+                        ret.push(elems[i]);
+                    }
+                }
+                return ret;
+            } else {
+                // for IE
+                var elems = (tag === "*" && parentNode.all)? parentNode.all : parentNode.getElementsByTagName(tag),
+                    ret = [];
+                for(var i = 0 ; i < elems.length; i++) {
+                    if(kss.hasClass(elems[i], searchClass)) {
+                        ret.push(elems[i]);
+                    }
+                }
+                return ret;
+            }
+        }
+        // $("tag")
+        if(rSelectTag.test(selector)) {
+            var elems = parentNode.getElementsByTagName(selector);
+            return elems;
+        }
+    },
+    
+    // update at 2013.02.25
+    // 获得相应子节点
+    children: function(selector, parentNode) {
+        var elems = parentNode.childNodes;
+        var match = rSelectClass.exec(selector);
+        var ret = [];
+        if(match && match[2]) {
+            var searchClass = match[2],
+                tag = match[1] || "*";
+            for(var i = 0; i < elems.length; i++) {
+                var elem = elems[i];
+                if(elem.nodeType == 1) {
+                    if(tag === "*" || elem.tagName === tag.toUpperCase()) {
+                        if(elem.className.indexOf(searchClass) >= 0) {
+                            ret.push(elem);
+                        }
+                    }
+                }
+            }
+            return ret;
+        }
+        if(rSelectTag.test(selector)) {
+            for(var i = 0; i < elems.length; i++) {
+                var elem = elems[i];
+                if(elem.nodeType == 1) {
+                    if(elem.tagName == selector.toUpperCase()) {
+                        ret.push(elem);
+                    }
+                }
+            }
+            return ret;
+        }
+    },
+    
+    // add 2013.02.25
+    // 筛选节点
+    dir: function(elem, dir, besides, one) {
+		var matched = [],
+			cur = elem;
+        
+		while(cur && cur.nodeType !== 9) {
+			if(cur.nodeType === 1 && cur !== besides) {
+				matched.push(cur);
+                if(one) {
+                    return matched;
+                }
+			}
+			cur = cur[dir];
+		}
+		return matched;
+	},
+    
+    // update at 2013.02.19
+    // kss对象遍历
+    each: function(obj, callback, args) {
+        if(typeof args === "undefined") {
+            for(var i = 0; i < obj.length; i++) { 
+                if(callback.call(obj[i], i, obj[i]) === false) { 
+                    break;
+                }
+            }
+        } else if(kss.isArray(args)) {
+            for(var i = 0; i < obj.length; i++) { 
+                if(callback.apply(obj[i], args) === false) { 
+                    break;
+                }
+            }
+        }
+        return obj;
+    }
+});
+
+kss.extend({
     // add at 2013.02.13
     // 全局缓存
     cache: {},
@@ -330,7 +522,7 @@ kss.fn.extend({
                 kss.queue(this, "animatequeue", opt.callback);
             }
             for(var name in prop) {
-                if(kss.fxStyle.indexOf(name) >= 0) {
+                if(kss.inArray(name, kss.fxStyle) >= 0) {
                     var fx = new kss.fx(this, opt, name);
                     var start = parseInt(kss(this).css(name));
                     var end = parseInt(prop[name]);
@@ -449,159 +641,27 @@ kss.extend({
     fxStyle: ["opacity", "lineHeight", "height", "width", "top", "bottom", "left", "right", "backgroundPositionX", "backgroundPositionY", "marginTop", "marginBottom", "marginLeft", "marginLeft", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight"]
 });
 
-// add at 2012.11.21
-// for not array indexOf
-if(!Array.prototype.indexOf) {
-    Array.prototype.indexOf = function (obj, fromIndex) {
+kss.extend({
+    // add at 2013.02.25
+    inArray: function (value, arr, fromIndex) {
         if (typeof fromIndex !== "number") {
             fromIndex = 0;
         } else if (fromIndex < 0) {
             fromIndex = Math.max(0, this.length + fromIndex);
         }
         for (var i = fromIndex; i < this.length; i++) {
-            if (this[i] === obj)
+            if (this[i] === value)
                 return i;
             }
         return -1;
-    };
-}
-
-kss.extend({
-    // add at 2012.11.20
-    isFunction: function(obj) {
-        return toString.call(obj) === "[object Function]";
     },
-    
-    // add at 2012.11.22
-    isEmptyObject: function(obj) {
-        for(var name in obj) {
-            return false;
-        }
-        return true;
-    },
-    
-    // add at 2012.11.20
-    isArray: function(obj) {
-        return toString.call(obj) === "[object Array]";
-    },
-    
-    // add at 2013.02.19
-    // 判断是否标量
-    isScalar: function(obj) {
-        return typeof obj === "string" ||  typeof obj === "number" || typeof obj === "boolean";
-    }
-});
-
-kss.extend({
-    // return array
-    find: function(selector, parentNode) {
-        // $k("#id")
-        var match = /^#([\w-]+)$/.exec(selector);
-        if(match && match[1]) {
-            var elem = document.getElementById(match[1]),
-                ret = [];
-            if(elem) {
-                ret[0] = elem;
-            }
-            return ret;
-        }
-        // $k(".class")
-        match = /^([\w-]*)\.([\w-]+)$/.exec(selector);
-        if(match && match[2]) {
-            var searchClass = match[2],
-                tag = match[1] || "*";
-            if(document.getElementsByClassName) {
-                var elems = parentNode.getElementsByClassName(searchClass),
-                    ret = [];
-                if(tag === "*") {
-                    return elems;
-                }
-                for(var i = 0, len = elems.length; i < len; i++) {
-                    if(elems[i].tagName === tag.toUpperCase()) {
-                        ret.push(elems[i]);
-                    }
-                }
-                return ret;
-            } else {
-                // for IE
-                var elems = (tag === "*" && parentNode.all)? parentNode.all : parentNode.getElementsByTagName(tag),
-                    ret = [];
-                for(var i = 0 ; i < elems.length; i++) {
-                    if(kss.hasClass(elems[i], searchClass)) {
-                        ret.push(elems[i]);
-                    }
-                }
-                return ret;
-            }
-        }
-        // $("tag")
-        if(/^\w+$/.test(selector)) {
-            var elems = parentNode.getElementsByTagName(selector);
-            return elems;
-        }
-    },
-    
-    // update at 2013.02.14
-    children: function(selector, parentNode) {
-        var elems = parentNode.childNodes;
-        var match = /^([\w-]*)\.([\w-]+)$/.exec(selector);
-        var ret = [];
-        if(match && match[2]) {
-            var searchClass = match[2],
-                tag = match[1] || "*";
-            for(var i = 0; i < elems.length; i++) {
-                var elem = elems[i];
-                if(elem.nodeType == 1) {
-                    if(tag === "*" || elem.tagName === tag.toUpperCase()) {
-                        if(elem.className.indexOf(searchClass) >= 0) {
-                            ret.push(elem);
-                        }
-                    }
-                }
-            }
-            return ret;
-        }
-        if(/^\w+$/.test(selector)) {
-            for(var i = 0; i < elems.length; i++) {
-                var elem = elems[i];
-                if(elem.nodeType == 1) {
-                    if(elem.tagName == selector.toUpperCase()) {
-                        ret.push(elem);
-                    }
-                }
-            }
-            return ret;
-        }
-    },
-    
-    // update at 2013.02.19
-    // kss对象遍历
-    each: function(kssObj, callback, args) {
-        if(typeof args === "undefined") {
-            for(var i = 0; i < kssObj.length; i++) { 
-                if(callback.call(kssObj[i], i, kssObj[i]) === false) { 
-                    break;
-                }
-            }
-        } else if(kss.isArray(args)) {
-            for(var i = 0; i < kssObj.length; i++) { 
-                if(callback.apply(kssObj[i], args) === false) { 
-                    break;
-                }
-            }
-        }
-        return kssObj;
-    }
-});
-
-kss.extend({
     // add at 2012.11.21
     // Array clear repeat data
     uniq: function(arr) {
         var ret = [];
         if(kss.isArray(arr)) {
             for(var i = 0; i < arr.length; i++) {
-                if(ret.indexOf(arr[i]) === -1) {
+                if(kss.inArray(arr[i], ret) === -1) {
                     ret.push(arr[i]);
                 }
             }
@@ -1164,12 +1224,12 @@ kss.fn.extend({
     prop: function(name, value) {
         if(typeof value === "undefined") {
             var prop =  this.attr(name);
-            if(kss.sepProp.indexOf(name) >= 0) {
+            if(kss.inArray(name, kss.sepProp) >= 0) {
                 return typeof prop === "string" && (prop === name || prop === "");
             }
             return prop;
         }
-        if(kss.sepProp.indexOf(name) >= 0 && typeof value === "boolean") {
+        if(kss.inArray(name, kss.sepProp) >= 0 && typeof value === "boolean") {
             if(value) {
                 value = name;
             } else {
