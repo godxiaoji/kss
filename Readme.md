@@ -179,18 +179,6 @@ DOM文档加载完毕执行，不同于onload，不包括加载完图片等。�
         // Javascript Start
     });
 
-### 动画效果
-
-* .animate(prop, speed[, easing, callback])
-
-实现渐变的动画效果。如: 
-
-    $("div").animate({top: 100, left: 100}, 200, "swing", function() {
-        console.log("end")
-    });
-
-注：使用回调函数可能会遇到bug，队列理解的不够深奥，不建议使用。
-
 ### 数据获取
 
 * $.ajax(setting)
@@ -222,39 +210,6 @@ DOM文档加载完毕执行，不同于onload，不包括加载完图片等。�
     $.getScript: function("travisup.com", function() {
         console.log('loaded');
     });
-
-### 扩展方法
-
-* $.browser
-
-判断浏览器模式，支持ie/chrome/safari/firefox/opera。
-
-如在ie9浏览器标准模式下：
-
-    $.browser = {
-        ie: true,
-        firefox: false,
-        safari: false,
-        opera: false,
-        chrome: false,
-        gecko: false,
-        webkit: false,
-        version: "9.0"
-    }
-
-注：由于现在的浏览器存在userAgent欺骗的情况，所以不建议使用。
-
-* $.cookie(name[, value, options])
-
-cookie的读取与设置，具体使用方法可见[Cookie](https://github.com/godxiaoji/cookie)
-
-* $.get(name)
-
-获取URL对应参数的值。
-
-如：travisup.com?id=1
-    
-    $.get(id) // 返回1
     
 ### 其他方法
 
@@ -297,3 +252,46 @@ cookie的读取与设置，具体使用方法可见[Cookie](https://github.com/g
 * $.isEmptyObject(param)
 
 判断传入的参数是否为空对象，没判断继承的属性。
+
+## Extend 扩展Api
+
+* .animate(prop, speed[, easing, callback])
+
+实现渐变的动画效果。如: 
+
+    $("div").animate({top: 100, left: 100}, 200, "swing", function() {
+        console.log("end")
+    });
+
+注：使用回调函数可能会遇到bug，队列理解的不够深奥，不建议使用。
+
+* $.browser
+
+判断浏览器模式，支持ie/chrome/safari/firefox/opera。
+
+如在ie9浏览器标准模式下：
+
+    $.browser = {
+        ie: true,
+        firefox: false,
+        safari: false,
+        opera: false,
+        chrome: false,
+        gecko: false,
+        webkit: false,
+        version: "9.0"
+    }
+
+注：由于现在的浏览器存在userAgent欺骗的情况，所以不建议使用。
+
+* $.cookie(name[, value, options])
+
+cookie的读取与设置，具体使用方法可见[Cookie](https://github.com/godxiaoji/cookie)
+
+* $.queryString(name)
+
+获取URL对应参数的值。
+
+如：travisup.com?id=1
+    
+    $.queryString(id) // 返回1
