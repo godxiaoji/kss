@@ -23,9 +23,9 @@
 
 返回相应后代节点的kss对象。
 
-* .children(selector)
+* .children([selector])
 
-只在子节点遍历，返回相应子节点的kss对象。
+只在子节点遍历，返回全部或相应子节点的kss对象。
 
 * .parent()
 
