@@ -2,7 +2,7 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 1.0.2
+ * @Version 1.0.3
  */
 (function (window, undefined) {
 
@@ -22,7 +22,7 @@
     k_toString = k_obj.toString,
     k_trim = k_str.trim,
 
-    version = "1.0.2",
+    version = "1.0.3",
 
     kss = function (selector, context) {
         return new init(selector, context);
@@ -98,6 +98,7 @@
             
             var match,
                 i = 0,
+                obj,
                 len = this.length,
                 rets = [];
 
@@ -646,22 +647,54 @@
         // 全局索引
         guid : 1,
 
-        // update at 2013.02.15
-        // 缓存数据操作
-        data : function (elem, key, value) {
+        // 获取数据索引（update at 2013.03.18）
+        getCacheIndex: function(elem, isSet) {
             var id = kss.expando;
-            if (typeof value === "undefined") {
-                if (elem[id] && kss.cache[elem[id]]) {
-                    if (typeof kss.cache[elem[id]][key] !== "undefined") {
-                        return kss.cache[elem[id]][key];
+            if(elem.nodeType === 1) {
+                return elem[id] || !isSet ? elem[id] : (elem[id] = ++kss.guid);
+            }
+            return elem.nodeType === 9 ? 1 : 0;
+        },
+
+        // 读取/缓存数据操作（update at 2013.03.18）
+        data : function (elem, type, name, value) {
+            var cache = kss.cache,
+                isRead = typeof value === "undefined" ? true : false,
+                index = kss.getCacheIndex(elem, !isRead);
+                
+            if(isRead) {
+                return index && cache[index] && cache[index][type] && cache[index][type][name] || undefined;
+            }
+            
+            cache = cache[index] = cache[index] || {};
+            
+            if(!cache[type]) {
+                cache[type] = {};
+            }
+            
+            cache[type][name] = value;
+            
+            return typeof obj === "object" ? kss.clone(value) : value;
+        },
+        
+        // 删除数据操作（update at 2013.03.18）
+        removeData: function(elem, type, name) {
+            var data,
+                cache = kss.cache,
+                index = kss.getCacheIndex(elem);
+                
+            if(index && (data = cache[index])) {
+                if(data[type]) {
+                    if(name) {
+                        delete data[type][name];
+                    } else {
+                        delete data[type];
                     }
                 }
-                return undefined;
-            }
-            if (elem.nodeType) {
-                elem[id] = elem[id] || kss.guid++;
-                kss.cache[elem[id]] = kss.cache[elem[id]] || {};
-                kss.cache[elem[id]][key] = value;
+                
+                if(kss.isEmptyObject(data[type])) {
+                    delete data[type];
+                }
             }
         },
 
@@ -788,6 +821,7 @@
         add : function (elem, type, selector, data, fn) {
             var handleObj = {},
             handler,
+            events,
             id = kss.expando;
             // 事件委托
             if (selector) {
@@ -819,20 +853,17 @@
             }
 
             // 事件缓存
-            var events = kss.data(elem, "events");
-            if (!events) {
-                events = {};
-            }
+            fn[id] = kss.getCacheIndex(elem, true);
+            events = kss.data(elem, "events", type) || [];
 
             handleObj.handler = handler;
             handleObj.selector = selector;
             handleObj.data = data;
-            handleObj.guid = fn[id] = fn[id] || kss.guid++;
+            handleObj.guid = fn[id];
 
-            events[type] = events[type] || [];
-            events[type].push(handleObj);
+            events.push(handleObj);
 
-            kss.data(elem, "events", events);
+            kss.data(elem, "events", type, events);
 
             if (window.addEventListener) {
                 elem.addEventListener(type, handler, false);
@@ -849,18 +880,17 @@
             var handleObj,
             handler,
             id = kss.expando,
-            events = kss.data(elem, "events"),
+            events = kss.data(elem, "events", type),
             typeObj = [];
-            if (!elem[id] || !events || !events[type]) {
+            if (!elem[id] || !events) {
                 return;
             }
 
             if (kss.isFunction(fn) && !fn[id]) {
                 return;
             }
-
-            for (var i = 0; i < events[type].length; i++) {
-                handleObj = events[type][i];
+            for (var i = 0; i < events.length; i++) {
+                handleObj = events[i];
                 if (typeof fn === "undefined" ||
                     (typeof selector !== "undefined" && handleObj.selector === selector && fn[id] === handleObj.guid) ||
                     (typeof selector === "undefined" && fn[id] === handleObj.guid)) {
@@ -878,8 +908,12 @@
                     typeObj.push(handleObj);
                 }
             }
-            events[type] = typeObj;
-            kss.data(elem, "events", events);
+            
+            if(kss.isEmptyObject(typeObj)) {
+                kss.removeData(elem, "events", type);
+            } else {
+                kss.data(elem, "events", type, typeObj);
+            }
         },
 
         trigger : function (elem, event) {
@@ -1143,7 +1177,7 @@
         // add at 2012.12.12
         // 显示元素
         show : function (elem) {
-            var old = kss.data(elem, "olddisplay");
+            var old = kss.data(elem, "css", "olddisplay");
             elem.style.display = old || "";
             var display = kss.curCss(elem, "display");
             if (display == "none") {
@@ -1157,7 +1191,7 @@
         hide : function (elem) {
             var display = kss.curCss(elem, "display");
             if (display != "none") {
-                kss.data(elem, "olddisplay", display);
+                kss.data(elem, "css", "olddisplay", display);
             }
             elem.style.display = "none";
         },

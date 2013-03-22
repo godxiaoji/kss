@@ -10,24 +10,24 @@
 		// update at 2013.02.16
 		// 队列：入队
 		queue : function (elem, name, fn) {
-			var fns = kss.data(elem, name);
+			var fns = kss.data(elem, 'queue', name);
 			if (!fns || !kss.isArray(fns)) {
 				fns = [];
 			}
 			if (kss.isFunction(fn)) {
 				fns.push(fn);
 			}
-			kss.data(elem, name, fns);
+			kss.data(elem, 'queue', name, fns);
 		},
 
 		// update at 2013.02.16
 		// 队列：出队并执行
 		dequeue : function (elem, name) {
-			var fns = kss.data(elem, name),
+			var fns = kss.data(elem, 'queue', name),
 			fn;
 			if (fns && fns[0]) {
 				fn = fns.shift();
-				kss.data(elem, name, fns);
+				kss.data(elem, 'queue', name, fns);
 				fn.call(elem);
 			}
 		}
