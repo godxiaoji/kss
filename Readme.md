@@ -159,7 +159,7 @@ die方法实现：`$(document).on("click", "a", functionB);`
 
 * .trigger(type)
 
-触发事件，如click，focus等等
+触发事件，如click，focus等等（模拟事件触发）
 
 * .click([data, fn])/focus/blur...
 
@@ -244,6 +244,10 @@ DOM文档加载完毕执行，不同于onload，不包括加载完图片等。�
 * $.isArray(param)
 
 判断传入的参数是否为数组。
+
+* $.isFunction(param)
+
+判断传入的参数是否为数字（包含只含数字的字符串）。
 
 * $.isScalar(param)
 
