@@ -1443,8 +1443,8 @@
                 } else if (s.type === "POST") {
                     xhr.open(s.type, s.url, s.async);
                     xhr.setRequestHeader("Content-type", s.contentType);
-                    params = ajax.buildParams(s.data)
-                        xhr.send(params);
+                    params = ajax.buildParams(s.data);
+                    xhr.send(params);
                 }
             },
 
@@ -1491,7 +1491,7 @@
 
                 script.onerror = script.onload = script.onreadystatechange = function (e) {
                     transports.script.callback(e, script, s);
-                }
+                };
 
                 head.appendChild(script);
             },
@@ -1789,7 +1789,8 @@
 
 		return browser;
 	};
-
+    kss.browser = clientMatch();
+    
     rootKss = kss(document);
     window.kss = window.$ = kss;
 
