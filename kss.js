@@ -76,12 +76,12 @@
         push : k_push,
         sort : k_sort,
 
-        // add at 2013.02.25
+        // array length
         size : function () {
             return this.length;
         },
 
-        // update at 2012.12.11
+        // array to kss object
         pushStack : function (elems) {
             var ret = kss();
             for (var i = 0; i < elems.length; i++) {
@@ -191,6 +191,41 @@
     };
 
     kss.extend({
+        // 判断是否为函数（add at 2012.11.20）
+        isFunction : function (obj) {
+            return k_toString.call(obj) === "[object Function]";
+        },
+
+        // 判断是否为数组（add at 2012.11.20）
+        isArray : function (obj) {
+            return k_toString.call(obj) === "[object Array]";
+        },
+
+        // 判断是否为数字（包含只含数字的字符串）（add at 2012.11.20）
+        isNumeric : function (obj) {
+            return !isNaN(parseFloat(obj)) && isFinite(obj);
+        },
+
+        // 判断是否为空对象（add at 2012.11.22）
+        isEmptyObject : function (obj) {
+            for (var name in obj) {
+                return false;
+            }
+            return true;
+        },
+
+        // 判断是否为kss封装的对象（add at 2013.02.27）
+        isKssObject : function (obj) {
+            return obj.constructor == kss && typeof obj.length === "number";
+        },
+
+        // 判断是否为标量（add at 2013.02.19）
+        isScalar : function (obj) {
+            return typeof obj === "string" || typeof obj === "number" || typeof obj === "boolean";
+        }
+    });
+
+    kss.extend({
         // 对对象和数组进行callback操作（update at 2013.02.27）
         map : function (elems, callback) {
             var value,
@@ -254,96 +289,6 @@
             }
 
             return obj;
-        }
-    });
-
-    kss.extend({
-        // 判断是否为函数（add at 2012.11.20）
-        isFunction : function (obj) {
-            return k_toString.call(obj) === "[object Function]";
-        },
-
-        // 判断是否为数组（add at 2012.11.20）
-        isArray : function (obj) {
-            return k_toString.call(obj) === "[object Array]";
-        },
-
-        // 判断是否为数字（包含只含数字的字符串）（add at 2012.11.20）
-        isNumeric : function (obj) {
-            return !isNaN(parseFloat(obj)) && isFinite(obj);
-        },
-
-        // 判断是否为空对象（add at 2012.11.22）
-        isEmptyObject : function (obj) {
-            for (var name in obj) {
-                return false;
-            }
-            return true;
-        },
-
-        // 判断是否为kss封装的对象（add at 2013.02.27）
-        isKssObject : function (obj) {
-            return obj.constructor == kss && typeof obj.length === "number";
-        },
-
-        // 判断是否为标量（add at 2013.02.19）
-        isScalar : function (obj) {
-            return typeof obj === "string" || typeof obj === "number" || typeof obj === "boolean";
-        }
-    });
-
-    kss.fn.extend({
-        // 读取设置节点内容（update at 2013.03.25）
-        html : function (value) {
-            if (typeof value === "undefined") {
-                return this[0] && this[0].nodeType === 1 ? this[0].innerHTML : null;
-            }
-            // 注：ie table等不支持写入，这里没做兼容
-            if (kss.isScalar(value)) {
-                return kss.each(this, function () {
-                    if (this.nodeType === 1) {
-                        try {
-                            this.innerHTML = value;
-                        } catch(e) {}
-                    }
-                });
-            }
-            return this;
-        },
-        
-        // 读取设置节点文本内容（update at 2013.03.25）
-        text : function (value) {
-            // 注：textContent !== innerText
-            if (typeof value === "undefined") {
-                return this[0] && this[0].nodeType === 1 ? (this[0].textContent ? this[0].textContent : this[0].innerText) : "";
-            }
-            if (kss.isScalar(value)) {
-                return kss.each(this, function () {
-                    if (this.nodeType === 1) {
-                        if (this.textContent) {
-                            this.textContent = value;
-                        } else {
-                            this.innerText = value;
-                        }
-                    }
-                });
-            }
-            return this;
-        },
-        
-        // 读取设置表单元素的值（update at 2013.03.25）
-        val : function (value) {
-            if (typeof value === "undefined") {
-                return this[0] && this[0].nodeType === 1 && typeof this[0].value !== "undefined" ? this[0].value : undefined;
-            }
-            if (kss.isScalar(value)) {
-                return kss.each(this, function () {
-                    if (typeof this.value !== "undefined") {
-                        this.value = value;
-                    }
-                });
-            }
-            return this;
         }
     });
 
@@ -500,8 +445,7 @@
             return rets;
         },
 
-        // add 2013.02.25
-        // 筛选节点
+        // 筛选节点（add 2013.02.25）
         dir : function (elem, dir, besides, one) {
             var matched = [],
             cur = elem;
@@ -518,12 +462,76 @@
         }
     });
 
+    kss.fn.extend({
+        // 读取设置节点内容（update at 2013.03.25）
+        html : function (value) {
+            if (typeof value === "undefined") {
+                return this[0] && this[0].nodeType === 1 ? this[0].innerHTML : null;
+            }
+            // 注：ie table等不支持写入，这里没做兼容
+            if (kss.isScalar(value)) {
+                return kss.each(this, function () {
+                    if (this.nodeType === 1) {
+                        try {
+                            this.innerHTML = value;
+                        } catch(e) {}
+                    }
+                });
+            }
+            return this;
+        },
+        
+        // 读取设置节点文本内容（update at 2013.03.25）
+        text : function (value) {
+            // 注：textContent !== innerText
+            if (typeof value === "undefined") {
+                return this[0] && this[0].nodeType === 1 ? (this[0].textContent ? this[0].textContent : this[0].innerText) : "";
+            }
+            if (kss.isScalar(value)) {
+                return kss.each(this, function () {
+                    if (this.nodeType === 1) {
+                        if (this.textContent || this.textContent == "") {
+                            this.textContent = value;
+                        } else {
+                            this.innerText = value;
+                        }
+                    }
+                });
+            }
+            return this;
+        },
+        
+        // 读取设置表单元素的值（update at 2013.03.25）
+        val : function (value) {
+            if (typeof value === "undefined") {
+                return this[0] && this[0].nodeType === 1 && typeof this[0].value !== "undefined" ? this[0].value : undefined;
+            }
+            if (kss.isScalar(value)) {
+                return kss.each(this, function () {
+                    if (typeof this.value !== "undefined") {
+                        this.value = value;
+                    }
+                });
+            }
+            return this;
+        }
+    });
+    
+    // JSON正则校验公式
+    var rValidchars = /^[\],:{}\s]*$/,
+    rValidbraces = /(?:^|:|,)(?:\s*\[)+/g,
+    rValidescape = /\\(?:["\\\/bfnrt]|u[\da-fA-F]{4})/g,
+    rValidtokens = /"[^"\\\r\n]*"|true|false|null|-?(?:\d+\.|)\d+(?:[eE][+-]?\d+|)/g;
+
     kss.extend({
         // 获取当前时间戳（add at 2012.11.25）
         now : function () {
             return (new Date()).getTime();
         },
-
+        // 随机生成数（add at 2013.02.20）
+        rand : function () {
+            return Math.random().toString().substr(2);
+        },
         // 判断是否在数组中（update at 2013.03.15）
         inArray : function (value, arr, start) {
             var i,
@@ -539,7 +547,6 @@
             }
             return -1;
         },
-
         // 清除数组中重复的数据（update at 2013.02.28）
         uniq : function (arr) {
             var ret = [],
@@ -554,7 +561,6 @@
             }
             return ret;
         },
-
         // 伪对象转化为数组（update at 2013.02.28）
         makeArray : function (obj) {
             var ret = [];
@@ -565,12 +571,6 @@
             }
             return ret;
         },
-
-        // 随机生成数（add at 2013.02.20）
-        rand : function () {
-            return Math.random().toString().substr(2);
-        },
-
         // 数组拼接（update at 2013.02.28）
         merge : function (first, second) {
             var i = first.length,
@@ -581,12 +581,10 @@
             }
             return first;
         },
-
         // 清除两边空格（update at 2012.12.24）
         trim : function (str) {
             return (str || "").replace(/(^[\s\t\n]+)|(\[\s\t\n]+$)/g, "");
         },
-
         // 删除节点（add at 2012.12.14）
         remove : function (elem) {
             var parent = elem.parentNode;
@@ -594,47 +592,41 @@
                 parent.removeChild(elem);
             }
         },
-
-        // 解析json（add at 2012.12.14）
+        // 解析json（update at 2013.04.01）
         parseJSON : function (data) {
-            if (!data || typeof data !== "string")
-                return null;
-
-            data = kss.trim(data);
-
             if (window.JSON && window.JSON.parse) {
                 return window.JSON.parse(data);
             }
-
-            if (/^[\],:{}\s]*$/.test(data.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, "@")
-                    .replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, "]")
-                    .replace(/(?:^|:|,)(?:\s*\[)+/g, ""))) {
-                return (new Function("return " + data))();
+            if (data === null) {
+                return data;
             }
+            
+            if (typeof data === "string") {
+                data = kss.trim(data);
 
+                if (data) {
+                    if (rValidchars.test(data.replace(rValidescape, "@")
+                        .replace(rValidtokens, "]")
+                        .replace(rValidbraces, ""))) {
+                        return (new Function( "return " + data))();
+                    }
+                }
+            }
             kss.error("Invalid JSON: " + data);
         },
-
-        // throw error
-        // add at 2012.12.14
+        // 抛出错误（add at 2012.12.14）
         error : function (msg) {
             throw new Error(msg);
         }
     });
 
     kss.extend({
-        // add at 2013.02.13
-        // 全局缓存
+        // 全局缓存（add at 2013.02.15）
         cache : {},
-
-        // add at 2013.02.15
-        // 内部Key
-        expando : "kss" + Math.random().toString().substr(2),
-
-        // add at 2013.02.15
         // 全局索引
         guid : 1,
-
+        // 内部Key
+        expando : "kss" + kss.rand(),
         // 获取数据索引（update at 2013.03.18）
         getCacheIndex: function(elem, isSet) {
             var id = kss.expando;
@@ -643,9 +635,8 @@
             }
             return elem.nodeType === 9 ? 1 : 0;
         },
-
-        // 读取/缓存数据操作（update at 2013.03.18）
-        data : function (elem, type, name, value) {
+        // 读取/缓存数据操作（update at 2013.03.27）
+        data : function (elem, type, name, value, overwrite) {
             var cache = kss.cache,
                 isRead = typeof value === "undefined" ? true : false,
                 index = kss.getCacheIndex(elem, !isRead);
@@ -660,11 +651,12 @@
                 cache[type] = {};
             }
             
-            cache[type][name] = value;
+            if(overwrite || typeof cache[type][name] === "undefined") {
+                cache[type][name] =  value;
+            }
             
-            return typeof obj === "object" ? kss.clone(value) : value;
+            return cache[type][name];
         },
-        
         // 删除数据操作（update at 2013.03.18）
         removeData: function(elem, type, name) {
             var data,
@@ -685,9 +677,7 @@
                 }
             }
         },
-
-        // add at 2012.12.12
-        // 深度复制
+        // 深度复制（add at 2012.12.12）
         clone : function (obj) {
             if (!obj) {
                 return obj;
@@ -712,8 +702,7 @@
         }
     });
 
-    // add at 2013.02.22
-    // 事件函数
+    // 事件函数（add at 2013.02.22）
     kss.each(("blur focus focusin focusout load resize scroll unload click dblclick " +
             "mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave " +
             "change select submit keydown keypress keyup error contextmenu").split(" "), function (i, name) {
@@ -725,8 +714,7 @@
     });
 
     kss.fn.extend({
-        // add 2013.02.15
-        // 事件绑定(bind/live/delegate)
+        // 事件绑定(bind/live/delegate add 2013.02.15)
         on : function (type, selector, data, fn) {
             if (typeof type !== "string" || type == "") {
                 return this;
@@ -755,9 +743,7 @@
                 kss.event.add(this, type, selector, data, fn);
             }, [type, selector, data, fn]);
         },
-
-        // add 2013.02.15
-        // 事件解绑(unbind/die/undelegate)
+        // 事件解绑(unbind/die/undelegate add 2013.02.15)
         off : function (type, selector, fn) {
             if (typeof type !== "string" || type == "") {
                 return this;
@@ -776,15 +762,14 @@
                 kss.event.remove(this, type, selector, fn);
             }, [type, selector, fn]);
         },
-
+        // 触发事件（update at 2013.03.25）
         trigger : function (type) {
             return kss.each(this, function () {
                 kss.event.trigger(this, type);
             });
         },
-
+        // 文档完成事件（add at 2012.11.18）
         ready : function (fn) {
-            // add at 2012.11.18
             kss.bindReady();
             if (kss.isReady) {
                 fn.call(document, kss);
@@ -795,13 +780,10 @@
         }
     });
 
-    // add at 2013.02.16
-    // 返回false函数
+    // 返回false函数（add at 2013.02.16）
     function returnFalse() {
         return false;
     }
-
-    var rTypeNamespace = /^(\w+)\.?(\w*)$/;
 
     kss.event = {
         // 事件绑定（update at 2013.02.20）
@@ -841,7 +823,7 @@
 
             // 事件缓存
             fn[id] = kss.getCacheIndex(elem, true);
-            events = kss.data(elem, "events", type) || [];
+            events = kss.data(elem, "events", type, []);
 
             handleObj.handler = handler;
             handleObj.selector = selector;
@@ -849,8 +831,6 @@
             handleObj.guid = fn[id];
 
             events.push(handleObj);
-
-            kss.data(elem, "events", type, events);
 
             if (window.addEventListener) {
                 elem.addEventListener(type, handler, false);
@@ -867,15 +847,15 @@
             handler,
             id = kss.expando,
             events = kss.data(elem, "events", type),
-            typeObj = [];
+            i = 0;
             if (!elem[id] || !events) {
                 return;
             }
-
             if (kss.isFunction(fn) && !fn[id]) {
                 return;
             }
-            for (var i = 0; i < events.length; i++) {
+            
+            for (; i < events.length; i++) {
                 handleObj = events[i];
                 if (typeof fn === "undefined" ||
                     (typeof selector !== "undefined" && handleObj.selector === selector && fn[id] === handleObj.guid) ||
@@ -890,22 +870,20 @@
                     } else {
                         elem["on" + type] = null;
                     }
-                } else {
-                    typeObj.push(handleObj);
+                    events.splice(i, 1);
                 }
             }
             
-            if(kss.isEmptyObject(typeObj)) {
+            if(events.length === 0) {
                 kss.removeData(elem, "events", type);
-            } else {
-                kss.data(elem, "events", type, typeObj);
             }
         },
 
         // 模拟事件点击（update at 2013.03.25）
         trigger : function (elem, type) {
             var i = 0,
-            len, event, parent, result, isPropagationStopped;
+            events,
+            len, event, parent, isPropagationStopped;
             
             events = kss.data(elem, "events", type);
 
@@ -933,7 +911,7 @@
         }
     };
 
-    // document ready
+    // 判断Dom载完（add at 2012.11.18）
     var readyList = [],
     readyBound = false,
     DOMContentLoaded;
@@ -1170,38 +1148,34 @@
                 elem.className = kss.trim(elem.className + " " + className + " ");
             }
         },
-
         // 删除Class（add at 2013.02.19）
         removeClass : function (elem, className) {
             if (elem.nodeType === 1) {
                 elem.className = kss.trim((" " + elem.className + " ").replace(" " + className + " ", " "));
             }
         },
-
-        // add at 2012.12.12
-        // 显示元素
+        // 显示元素（update at 2013.03.27）
         show : function (elem) {
-            var old = kss.data(elem, "css", "olddisplay");
-            elem.style.display = old || "";
-            var display = kss.curCss(elem, "display");
-            if (display == "none") {
+            var old = kss.data(elem, "style", "olddisplay"),
+                display = elem.style.display,
+                value;
+            display = old || "";
+            value = kss.curCss(elem, "display");
+            if (value == "none") {
                 // 非内联样式中如果设置了display:none，无论是原来是哪种盒子模型，都设置为block（暂定）
-                elem.style.display = "block";
+                display = "block";
             }
         },
-
-        // add at 2012.12.12
-        // 隐藏元素
+        // 隐藏元素（update at 2013.03.27）
         hide : function (elem) {
-            var display = kss.curCss(elem, "display");
-            if (display != "none") {
-                kss.data(elem, "css", "olddisplay", display);
+            var value = kss.curCss(elem, "display");
+            if (value != "none") {
+                kss.data(elem, "style", "olddisplay", value, true);
             }
             elem.style.display = "none";
         },
 
-        // add at 2012.11.22
-        // set CSS
+        // 设置CSS（add at 2012.11.22）
         setCss : function (elem, name, value) {
             if (elem.nodeType !== 1 || typeof name !== "string" || typeof value !== "string") {
                 return;
@@ -1211,8 +1185,7 @@
             }
         },
 
-        // update at 2012.11.26
-        // current CSS
+        // 获取当前CSS（update at 2012.11.26）
         curCss : function (elem, name) {
             if (elem.nodeType !== 1) {
                 return undefined;
@@ -1357,7 +1330,6 @@
         }
     });
 
-    //
     var ajax = {
         xhr : window.XMLHttpRequest && (window.location.protocol !== "file:" || !window.ActiveXObject) ? function () {
             return new window.XMLHttpRequest();
@@ -1411,7 +1383,6 @@
             return arr.join("&");
         },
 
-        // update 2012.12.14
         httpData : function (xhr, type) {
             var ct = xhr.getResponseHeader("content-type") || "";
             if (!type && ct.indexOf("xml") >= 0 || type.toLowerCase() == "xml")
@@ -1443,8 +1414,8 @@
                 } else if (s.type === "POST") {
                     xhr.open(s.type, s.url, s.async);
                     xhr.setRequestHeader("Content-type", s.contentType);
-                    params = ajax.buildParams(s.data);
-                    xhr.send(params);
+                    params = ajax.buildParams(s.data)
+                        xhr.send(params);
                 }
             },
 
@@ -1460,6 +1431,7 @@
                 }
             }
         },
+        // script动态载入（update 2013.03.10）
         script : {
             send : function (s) {
                 var match,
@@ -1491,7 +1463,7 @@
 
                 script.onerror = script.onload = script.onreadystatechange = function (e) {
                     transports.script.callback(e, script, s);
-                };
+                }
 
                 head.appendChild(script);
             },
@@ -1511,156 +1483,149 @@
     
     // 动画
     kss.extend({
-		// update at 2013.02.16
-		// 队列：入队
+		// 入队（update at 2013.03.27）
 		queue : function (elem, name, fn) {
-			var fns = kss.data(elem, 'queue', name);
-			if (!fns || !kss.isArray(fns)) {
-				fns = [];
+			var queue = kss.data(elem, 'queue', name, []);
+			if (!kss.isFunction(fn)) {
+				fn = returnFalse;
 			}
-			if (kss.isFunction(fn)) {
-				fns.push(fn);
-			}
-			kss.data(elem, 'queue', name, fns);
+            queue.push(fn);
 		},
-
-		// update at 2013.02.16
-		// 队列：出队并执行
+		// 出队并执行（update at 2013.03.27）
 		dequeue : function (elem, name) {
-			var fns = kss.data(elem, 'queue', name),
-			fn;
-			if (fns && fns[0]) {
-				fn = fns.shift();
-				kss.data(elem, 'queue', name, fns);
+			var fn,
+            queue = kss.data(elem, 'queue', name);
+			if (queue) {
+				fn = queue.shift();
 				fn.call(elem);
 			}
+            if(!queue[0]) {
+                kss.removeData(elem, 'queue', name);
+            }
 		},
-        
-        // add at 2012.11.26
-		speed : function (speed, easing, fn) {
-			var opt = {
-				speed : speed,
-				easing : easing || "swing",
-				callback : fn || null
-			};
-			return opt;
-		}
+        // 动画方程 from jQuery（add at 2012.11.25）
+        easing: {
+            linear : function (p) {
+                return p;
+            },
+            swing : function (p) {
+                return 0.5 - Math.cos( p*Math.PI ) / 2;
+            }
+        }
 	});
 
-	// update at 2012.11.26
 	kss.fn.extend({
-		animate : function (prop, speed, easing, callback) {
-			if (this.length === 0)
-				return;
-
-			var opt = kss.speed(speed, easing, callback);
+        // 动画效果（update at 2013.03.27）
+		animate : function (prop, speed, easing, fn) {
+            var options;
+            if(kss.isFunction(easing)) {
+                fn = easing;
+                easing = "swing";
+            }
+            
+            options = {
+				speed : parseInt(speed),
+				easing : easing || "swing",
+				fn : fn || returnFalse
+			};
 
 			return kss.each(this, function () {
-				if (typeof opt.callback === "function") {
-					kss.queue(this, "animatequeue", opt.callback);
-				}
-				for (var name in prop) {
-					if (kss.inArray(name, fxAllow) >= 0) {
-						var fx = new kss.fx(this, opt, name);
-						var start = parseInt(kss(this).css(name));
-						var end = parseInt(prop[name]);
-						fx.custom(start, end);
+                var key, fx, from, to;
+				kss.queue(this, "animate", options.fn);
+                
+				for (key in prop) {
+					if (kss.inArray(key, fxAllow) >= 0) {
+                        fx = new kss.fx(this, options, key);
+                        from = parseInt(kss(this).css(key));
+						to = parseInt(prop[key]);
+						fx.start(from, to);
 					}
 				}
-			}, [opt]);
+			});
 		},
-
+        // 停止所有动画（update at 2013.03.27）
 		stop : function () {
-			for (var i = timers.length - 1; i >= 0; i--) {
-				if (timers[i].elem === this[0]) {
-					timers[i].stop();
-				}
-			}
+            return kss.each(this, function () {
+                var i = timers.length - 1;
+                for (; i >= 0; i--) {
+                    if (timers[i].elem === this) {
+                        timers[i].stop();
+                    }
+                }
+            });
 		}
 	});
 
 	var timers = [],
 	timerId = null,
-    fxAllow = ["opacity", "lineHeight", "height", "width", "top", "bottom", "left", "right", "backgroundPositionX", "backgroundPositionY", "marginTop", "marginBottom", "marginLeft", "marginLeft", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight"];
+    fxAllow = ["lineHeight", "height", "width", "top", "bottom", "left", "right", "backgroundPositionX", "backgroundPositionY", "marginTop", "marginBottom", "marginLeft", "marginLeft", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight"];
 
-	// add at 2012.11.25
+	// 动画模块（update at 2013.03.27）
 	kss.fx = function (elem, options, name) {
 		this.elem = elem;
 		this.options = options;
 		this.name = name;
 	};
 
-	// update at 2012.11.26
 	kss.fx.prototype = {
-		custom : function (from, to) {
-			this.startTime = kss.now();
-			this.start = from;
-			this.end = to;
+		start : function (from, to) {
+            this.start = kss.now();
+            this.end = this.start + this.options.speed;
+			this.from = from;
+			this.to = to;
+            
 			timers.push(this);
 			kss.fx.tick();
 		},
 
 		step : function () {
-			var t = kss.now();
-			var nowPos;
-			if (t > this.startTime + this.options.speed) {
-				nowPos = this.end;
+			var t = kss.now(),
+                p,
+                pos;
+			if (t >= this.end) {
+				pos = this.to;
 				this.stop();
-				kss.dequeue(this.elem, "animatequeue");
+				kss.dequeue(this.elem, "animate");
 			} else {
-				var n = t - this.startTime;
-				var p = n / this.options.speed;
-				var pos = kss.easing[this.options.easing](p, n, 0, 1);
-				nowPos = this.start + ((this.end - this.start) * pos);
+				p = kss.easing[this.options.easing]((t - this.start) / this.options.speed);
+				pos = this.from + ((this.to - this.from) * p);
 			}
-			this.update(nowPos);
+			this.update(pos);
 		},
 
 		update : function (value) {
-			if (this.name !== "opacity") {
-				value += "px";
-			}
-			this.elem.style[this.name] = value;
+			this.elem.style[this.name] = value + 'px';
 		},
 
 		stop : function () {
-			for (var i = timers.length - 1; i >= 0; i--) {
+            var i = timers.length - 1;
+            for (; i >= 0; i--) {
 				if (timers[i] === this) {
 					timers.splice(i, 1);
+                    break;
 				}
 			}
 		}
 	};
 
-	// update at 2012.11.26
 	kss.fx.tick = function () {
-		if (timerId)
+		if (timerId) {
 			return;
+        }
 		timerId = setInterval(function () {
-				for (var i = 0; i < timers.length; i++) {
-					timers[i].step();
-				}
-				if (timers.length === 0) {
-					kss.fx.stop();
-				}
-			}, 13);
+            var i = 0;
+            for (; i < timers.length; i++) {
+                timers[i].step();
+            }
+            if (timers.length === 0) {
+                kss.fx.stop();
+            }
+        }, 13);
 	};
 
-	// add at 2012.11.25
 	kss.fx.stop = function () {
 		clearInterval(timerId);
 		timerId = null;
-	};
-
-	// add at 2012.11.25
-	// from jQuery
-	kss.easing = {
-		linear : function (p, n, firstNum, diff) {
-			return firstNum + diff * p;
-		},
-		swing : function (p, n, firstNum, diff) {
-			return ((-Math.cos(p * Math.PI) / 2) + 0.5) * diff + firstNum;
-		}
 	};
     
     // 扩展接口
@@ -1789,8 +1754,7 @@
 
 		return browser;
 	};
-    kss.browser = clientMatch();
-    
+
     rootKss = kss(document);
     window.kss = window.$ = kss;
 
