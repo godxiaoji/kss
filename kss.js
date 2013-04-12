@@ -2,7 +2,7 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 1.0.5
+ * @Version 1.0.6
  */
 (function (window, undefined) {
 
@@ -22,7 +22,7 @@
     k_toString = k_obj.toString,
     k_trim = k_str.trim,
 
-    version = "1.0.5",
+    version = "1.0.6",
 
     kss = function (selector, context) {
         return new init(selector, context);
@@ -370,11 +370,11 @@
                     return rets;
                     // $("tag")
                 } else if (match[2]) {
-                    k_push.apply(rets, parentNode.getElementsByTagName(match[2]));
+                    kss.merge(rets, parentNode.getElementsByTagName(match[2]));
                     return rets;
                     // $(".class")
                 } else if ((m = match[3]) && parentNode.getElementsByClassName) {
-                    k_push.apply(rets, parentNode.getElementsByClassName(match[3]));
+                    kss.merge(rets, parentNode.getElementsByClassName(match[3]));
                     return rets;
                 }
             }
@@ -1157,13 +1157,12 @@
         // 显示元素（update at 2013.03.27）
         show : function (elem) {
             var old = kss.data(elem, "style", "olddisplay"),
-                display = elem.style.display,
                 value;
-            display = old || "";
+            elem.style.display = old || "";
             value = kss.curCss(elem, "display");
             if (value == "none") {
                 // 非内联样式中如果设置了display:none，无论是原来是哪种盒子模型，都设置为block（暂定）
-                display = "block";
+                elem.style.display = "block";
             }
         },
         // 隐藏元素（update at 2013.03.27）
@@ -1414,8 +1413,8 @@
                 } else if (s.type === "POST") {
                     xhr.open(s.type, s.url, s.async);
                     xhr.setRequestHeader("Content-type", s.contentType);
-                    params = ajax.buildParams(s.data)
-                        xhr.send(params);
+                    params = ajax.buildParams(s.data);
+                    xhr.send(params);
                 }
             },
 
@@ -1463,7 +1462,7 @@
 
                 script.onerror = script.onload = script.onreadystatechange = function (e) {
                     transports.script.callback(e, script, s);
-                }
+                };
 
                 head.appendChild(script);
             },
