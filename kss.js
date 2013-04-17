@@ -2,7 +2,7 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 1.0.6
+ * @Version 1.0.7
  */
 (function (window, undefined) {
 
@@ -22,7 +22,7 @@
     k_toString = k_obj.toString,
     k_trim = k_str.trim,
 
-    version = "1.0.6",
+    version = "1.0.7",
 
     kss = function (selector, context) {
         return new init(selector, context);
@@ -333,6 +333,88 @@
         // 返回除自身以外所有兄弟节点（add 2013.02.25）
         siblings : function () {
             return this[0] ? this.pushStack(kss.dir(this[0].parentNode.firstChild, "nextSibling", this[0])) : kss();
+        }
+    });
+    
+    kss.fn.extend({
+        // 处理数据插入（update 2013.04.17）
+        // 注：没处理ie6的tbody插入问题
+        domManip: function(args, fn) {
+            var frag, nodes, clone,
+                i = 0,
+                len = this.length;
+            if(len === 0) {
+                return this;
+            }
+            if(typeof args[0] === "string") {
+                nodes = kss.parseNodes(args[0]);
+                frag = kss.buildFragment(nodes);
+            } else if(args[0] && args[0].nodeType) {
+                frag = nodes = args[0];
+            }
+            if(frag) {
+                for(; i < len; i++) {
+                    clone = frag.cloneNode(true);
+                    fn.call(this[i], clone);
+                }
+            }
+            frag = clone = null;
+            return this;
+        },
+        // 在元素里面内容的末尾插入内容（update 2013.04.17）
+        append: function() {
+            return this.domManip(arguments, function(elem) {
+                this.appendChild(elem);
+            });
+        },
+        // 在元素里面内容的前面插入内容（update（update 2013.04.17）
+        prepend: function() {
+            return this.domManip(arguments, function(elem) {
+                this.insertBefore(elem, this.firstChild);
+            });
+        },
+        // 在元素之前插入内容（update（update 2013.04.17）
+        before: function() {
+            return this.domManip(arguments, function(elem) {
+                if (this.parentNode) {
+                    this.parentNode.insertBefore(elem, this);
+                }
+            });
+        },
+        // 在元素之后插入内容（update（update 2013.04.17）
+        after: function() {
+            return this.domManip(arguments, function(elem) {
+                if (this.parentNode) {
+                    this.parentNode.insertBefore(elem, this.nextSibling);
+                }
+            });
+        }
+    });
+    
+    kss.extend({
+        // 解析字符串为dom节点（update 2013.04.17）
+        parseNodes: function(data) {
+            var wrap = document.createElement("div"),
+                rets = [],
+                cur;
+            wrap.innerHTML = data;
+            cur = wrap.firstChild;
+            while (cur && cur.nodeType !== 9) {
+                rets.push(cur);
+                cur = cur.nextSibling;
+            }
+            wrap = null;
+            return rets;
+        },
+        // 返回节点集合（update 2013.04.17）
+        buildFragment: function(nodes) {
+            var frag = document.createDocumentFragment(),
+                i = 0,
+                len = nodes.length;
+            for(; i < len; i++) {
+                frag.appendChild(nodes[i]);
+            }
+            return frag;
         }
     });
 
@@ -991,8 +1073,7 @@
 
     // 属性操作原型链
     kss.fn.extend({
-        // update at 2013.02.19
-        // 读取或设置元素属性
+        // 读取或设置元素属性（update at 2013.02.19）
         attr : function (name, value) {
             if (typeof name !== "string") {
                 return this;
@@ -1010,9 +1091,7 @@
             }
             return this;
         },
-
-        // add at 2013.02.19
-        // 删除元素指定属性
+        // 删除元素指定属性（update at 2013.02.19）
         removeAttr : function (name) {
             if (typeof name !== "string") {
                 return this;
@@ -1021,9 +1100,7 @@
                 kss.removeAttr(this, name);
             });
         },
-
-        // add at 2013.02.19
-        // 特殊属性处理
+        // 特殊属性处理（update at 2013.02.19）
         prop : function (name, value) {
             if (typeof value === "undefined") {
                 var prop = this.attr(name);
@@ -1045,31 +1122,25 @@
 
     // 属性操作
     kss.extend({
-        // update at 2013.02.19
-        // 设置元素属性（只支持元素）
+        // 设置元素属性（只支持元素 update at 2013.02.19）
         setAttr : function (elem, name, value) {
             if (elem.nodeType === 1) {
                 elem.setAttribute(name, value);
             }
         },
-
-        // add at 2013.02.19
-        // 删除元素指定属性（只支持元素）
+        // 删除元素指定属性（只支持元素 update at 2013.02.19）
         removeAttr : function (elem, name) {
             if (elem.nodeType === 1) {
                 elem.removeAttribute(name);
             }
         },
-
-        // add at 2013.02.19
-        // 需要特殊处理的属性
+        // 需要特殊处理的属性（update at 2013.02.19）
         sepProp : ['disabled', 'checked', 'selected', 'multiple', 'readonly', 'async', 'autofocus']
     });
 
     // 样式操作原型链
     kss.fn.extend({
-        // add at 2013.02.19
-        // 判断元素是否有对应Class
+        // 判断元素是否有对应Class（update at 2013.02.19）
         hasClass : function (className) {
             if (typeof className !== "string") {
                 return false;
@@ -1082,9 +1153,7 @@
             }
             return false;
         },
-
-        // add at 2013.02.19
-        // 添加Class
+        // 添加Class（update at 2013.02.19）
         addClass : function (className) {
             if (typeof className !== "string") {
                 return;
@@ -1093,9 +1162,7 @@
                 kss.addClass(this, className);
             });
         },
-
-        // add at 2013.02.19
-        // 删除Class
+        // 删除Class（update at 2013.02.19）
         removeClass : function (className) {
             if (typeof className !== "string") {
                 return;
@@ -1104,8 +1171,7 @@
                 kss.removeClass(this, className);
             });
         },
-
-        // update at 2012.11.22
+        // 读取或这是元素对应样式（update at 2012.11.22）
         // GET: only get the first node current css
         css : function (name, value) {
             if (typeof value === "undefined") {
@@ -1119,15 +1185,13 @@
                 kss.setCss(this, name, value);
             });
         },
-
-        // add at 2012.11.26
+        // 显示元素（add at 2012.11.26）
         show : function () {
             return kss.each(this, function () {
                 kss.show(this);
             });
         },
-
-        // add at 2012.11.26
+        // 隐藏元素（add at 2012.11.26）
         hide : function () {
             return kss.each(this, function () {
                 kss.hide(this);
@@ -1482,26 +1546,26 @@
     
     // 动画
     kss.extend({
-		// 入队（update at 2013.03.27）
-		queue : function (elem, name, fn) {
-			var queue = kss.data(elem, 'queue', name, []);
-			if (!kss.isFunction(fn)) {
-				fn = returnFalse;
-			}
+        // 入队（update at 2013.03.27）
+        queue : function (elem, name, fn) {
+            var queue = kss.data(elem, 'queue', name, []);
+            if (!kss.isFunction(fn)) {
+                fn = returnFalse;
+            }
             queue.push(fn);
-		},
-		// 出队并执行（update at 2013.03.27）
-		dequeue : function (elem, name) {
-			var fn,
+        },
+        // 出队并执行（update at 2013.03.27）
+        dequeue : function (elem, name) {
+            var fn,
             queue = kss.data(elem, 'queue', name);
-			if (queue) {
-				fn = queue.shift();
-				fn.call(elem);
-			}
+            if (queue) {
+                fn = queue.shift();
+                fn.call(elem);
+            }
             if(!queue[0]) {
                 kss.removeData(elem, 'queue', name);
             }
-		},
+        },
         // 动画方程 from jQuery（add at 2012.11.25）
         easing: {
             linear : function (p) {
@@ -1511,11 +1575,11 @@
                 return 0.5 - Math.cos( p*Math.PI ) / 2;
             }
         }
-	});
+    });
 
-	kss.fn.extend({
+    kss.fn.extend({
         // 动画效果（update at 2013.03.27）
-		animate : function (prop, speed, easing, fn) {
+        animate : function (prop, speed, easing, fn) {
             var options;
             if(kss.isFunction(easing)) {
                 fn = easing;
@@ -1523,27 +1587,27 @@
             }
             
             options = {
-				speed : parseInt(speed),
-				easing : easing || "swing",
-				fn : fn || returnFalse
-			};
+                speed : parseInt(speed),
+                easing : easing || "swing",
+                fn : fn || returnFalse
+            };
 
-			return kss.each(this, function () {
+            return kss.each(this, function () {
                 var key, fx, from, to;
-				kss.queue(this, "animate", options.fn);
+                kss.queue(this, "animate", options.fn);
                 
-				for (key in prop) {
-					if (kss.inArray(key, fxAllow) >= 0) {
+                for (key in prop) {
+                    if (kss.inArray(key, fxAllow) >= 0) {
                         fx = new kss.fx(this, options, key);
                         from = parseInt(kss(this).css(key));
-						to = parseInt(prop[key]);
-						fx.start(from, to);
-					}
-				}
-			});
-		},
+                        to = parseInt(prop[key]);
+                        fx.start(from, to);
+                    }
+                }
+            });
+        },
         // 停止所有动画（update at 2013.03.27）
-		stop : function () {
+        stop : function () {
             return kss.each(this, function () {
                 var i = timers.length - 1;
                 for (; i >= 0; i--) {
@@ -1552,66 +1616,66 @@
                     }
                 }
             });
-		}
-	});
+        }
+    });
 
-	var timers = [],
-	timerId = null,
+    var timers = [],
+    timerId = null,
     fxAllow = ["lineHeight", "height", "width", "top", "bottom", "left", "right", "backgroundPositionX", "backgroundPositionY", "marginTop", "marginBottom", "marginLeft", "marginLeft", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight"];
 
-	// 动画模块（update at 2013.03.27）
-	kss.fx = function (elem, options, name) {
-		this.elem = elem;
-		this.options = options;
-		this.name = name;
-	};
+    // 动画模块（update at 2013.03.27）
+    kss.fx = function (elem, options, name) {
+        this.elem = elem;
+        this.options = options;
+        this.name = name;
+    };
 
-	kss.fx.prototype = {
-		start : function (from, to) {
+    kss.fx.prototype = {
+        start : function (from, to) {
             this.start = kss.now();
             this.end = this.start + this.options.speed;
-			this.from = from;
-			this.to = to;
+            this.from = from;
+            this.to = to;
             
-			timers.push(this);
-			kss.fx.tick();
-		},
+            timers.push(this);
+            kss.fx.tick();
+        },
 
-		step : function () {
-			var t = kss.now(),
+        step : function () {
+            var t = kss.now(),
                 p,
                 pos;
-			if (t >= this.end) {
-				pos = this.to;
-				this.stop();
-				kss.dequeue(this.elem, "animate");
-			} else {
-				p = kss.easing[this.options.easing]((t - this.start) / this.options.speed);
-				pos = this.from + ((this.to - this.from) * p);
-			}
-			this.update(pos);
-		},
+            if (t >= this.end) {
+                pos = this.to;
+                this.stop();
+                kss.dequeue(this.elem, "animate");
+            } else {
+                p = kss.easing[this.options.easing]((t - this.start) / this.options.speed);
+                pos = this.from + ((this.to - this.from) * p);
+            }
+            this.update(pos);
+        },
 
-		update : function (value) {
-			this.elem.style[this.name] = value + 'px';
-		},
+        update : function (value) {
+            this.elem.style[this.name] = value + 'px';
+        },
 
-		stop : function () {
+        stop : function () {
             var i = timers.length - 1;
             for (; i >= 0; i--) {
-				if (timers[i] === this) {
-					timers.splice(i, 1);
+                if (timers[i] === this) {
+                    timers.splice(i, 1);
                     break;
-				}
-			}
-		}
-	};
-
-	kss.fx.tick = function () {
-		if (timerId) {
-			return;
+                }
+            }
         }
-		timerId = setInterval(function () {
+    };
+
+    kss.fx.tick = function () {
+        if (timerId) {
+            return;
+        }
+        timerId = setInterval(function () {
             var i = 0;
             for (; i < timers.length; i++) {
                 timers[i].step();
@@ -1620,44 +1684,44 @@
                 kss.fx.stop();
             }
         }, 13);
-	};
+    };
 
-	kss.fx.stop = function () {
-		clearInterval(timerId);
-		timerId = null;
-	};
+    kss.fx.stop = function () {
+        clearInterval(timerId);
+        timerId = null;
+    };
     
     // 扩展接口
     kss.extend({
-		// 获取URL参数（update at 2013.03.25）
-		queryString : function (name) {
-			if (!location.search)
-				return undefined;
+        // 获取URL参数（update at 2013.03.25）
+        queryString : function (name) {
+            if (!location.search)
+                return undefined;
 
-			var search = location.search.substr(1).split("&"),
+            var search = location.search.substr(1).split("&"),
             i = 0,
             params = {},
-			key,
-			value,
-			pos;
-			for (; i < search.length; i++) {
-				pos = search[i].indexOf("=");
-				if (pos > 0) {
-					key = search[i].substring(0, pos);
-					value = search[i].substring(pos + 1);
-					params[key] = decodeURIComponent(value);
-				}
-			}
-			if (typeof name === "undefined") {
-				return kss.isEmptyObject(params) ? undefined : params;
-			}
+            key,
+            value,
+            pos;
+            for (; i < search.length; i++) {
+                pos = search[i].indexOf("=");
+                if (pos > 0) {
+                    key = search[i].substring(0, pos);
+                    value = search[i].substring(pos + 1);
+                    params[key] = decodeURIComponent(value);
+                }
+            }
+            if (typeof name === "undefined") {
+                return kss.isEmptyObject(params) ? undefined : params;
+            }
             return params[name] ? params[name] : undefined;
-		},
+        },
 
-		// cookie操作（update at 2013.03.25）
-		cookie : function (name, value, options) {
-			if (typeof name === "undefined")
-				return null;
+        // cookie操作（update at 2013.03.25）
+        cookie : function (name, value, options) {
+            if (typeof name === "undefined")
+                return null;
             
             var i = 0,
                 len,
@@ -1668,91 +1732,91 @@
                 date,
                 path,
                 secure;
-			// 读取cookie
-			if (typeof value === "undefined") {
-				if (document.cookie && document.cookie != "") {
+            // 读取cookie
+            if (typeof value === "undefined") {
+                if (document.cookie && document.cookie != "") {
                     cookies = document.cookie.split(";");
-					for (len = cookies.length; i < len; i++) {
-						cookie = kss.trim(cookies[i]);
-						if (cookie.indexOf(name + "=") === 0) {
-							ret = cookie.substr(name.length + 1);
-							break;
-						}
-					}
-				}
-				return ret;
-			}
-			// 设置cookie
-			options = options || {};
-			// 删除cookie
-			if (value === null) {
-				value = "";
-				options.expires = -1;
-			}
+                    for (len = cookies.length; i < len; i++) {
+                        cookie = kss.trim(cookies[i]);
+                        if (cookie.indexOf(name + "=") === 0) {
+                            ret = cookie.substr(name.length + 1);
+                            break;
+                        }
+                    }
+                }
+                return ret;
+            }
+            // 设置cookie
+            options = options || {};
+            // 删除cookie
+            if (value === null) {
+                value = "";
+                options.expires = -1;
+            }
             
-			if (options.expires && (typeof options.expires == "number" || options.expires.toUTCString)) {
-				if (typeof options.expires == "number") {
-					date = new Date();
-					date.setTime(date.getTime() + options.expires * 1000);
-				} else {
-					date = options.expires;
-				}
-				expires = "; expires=" + date.toUTCString();
-			}
+            if (options.expires && (typeof options.expires == "number" || options.expires.toUTCString)) {
+                if (typeof options.expires == "number") {
+                    date = new Date();
+                    date.setTime(date.getTime() + options.expires * 1000);
+                } else {
+                    date = options.expires;
+                }
+                expires = "; expires=" + date.toUTCString();
+            }
             
-			path = options.path ? "; path=" + options.path : "";
-			domain = options.domain ? "; domain=" + options.domain : "";
-			secure = options.secure ? "; secure" : "";
-			ret = [name, "=", encodeURIComponent(value), expires, path, domain, secure].join("");
-			document.cookie = ret;
-			return ret;
-		}
-	});
+            path = options.path ? "; path=" + options.path : "";
+            domain = options.domain ? "; domain=" + options.domain : "";
+            secure = options.secure ? "; secure" : "";
+            ret = [name, "=", encodeURIComponent(value), expires, path, domain, secure].join("");
+            document.cookie = ret;
+            return ret;
+        }
+    });
     
     // 浏览器检测（update at 2012.11.23）
-	var clientMatch = function () {
-		var ua = navigator.userAgent.toLowerCase(),
+    var clientMatch = function () {
+        var ua = navigator.userAgent.toLowerCase(),
             match;
 
-		browser = {
-			ie : false,
-			firefox : false,
-			chrome : false,
-			webkit : false,
-			safari : false,
-			opera : false,
+        browser = {
+            ie : false,
+            firefox : false,
+            chrome : false,
+            webkit : false,
+            safari : false,
+            opera : false,
 
-			version : ""
-		};
-		// Opera通过特有属性判断
-		if (window.opera) {
-			browser.version = window.opera.version();
-			browser.opera = true;
-			// 其他通过userAgent检测
-		} else {
+            version : ""
+        };
+        // Opera通过特有属性判断
+        if (window.opera) {
+            browser.version = window.opera.version();
+            browser.opera = true;
+            // 其他通过userAgent检测
+        } else {
             match = /(chrome)[ \/]([\w.]+)/.exec(ua) ||
-				/(webkit)[ \/]([\w.]+)/.exec(ua) ||
-				/ms(ie)\s([\w.]+)/.exec(ua) ||
-				/(firefox)[ \/]([\w.]+)/.exec(ua) ||
-				[];
+                /(webkit)[ \/]([\w.]+)/.exec(ua) ||
+                /ms(ie)\s([\w.]+)/.exec(ua) ||
+                /(firefox)[ \/]([\w.]+)/.exec(ua) ||
+                [];
 
-			if (match[1]) {
-				browser[match[1]] = true;
-			}
-			browser.version = match[2] || "";
-			// 在PC端，webkit浏览器不是Chrome/Chromium就是Safari
-			if (browser.webkit) {
-				browser.safari = true;
-				match = /version\/([\w.]+)/.exec(ua);
-				browser.version = match[1] || "0";
-			}
-			if (browser.chrome) {
-				browser.webkit = true;
-			}
-		}
+            if (match[1]) {
+                browser[match[1]] = true;
+            }
+            browser.version = match[2] || "";
+            // 在PC端，webkit浏览器不是Chrome/Chromium就是Safari
+            if (browser.webkit) {
+                browser.safari = true;
+                match = /version\/([\w.]+)/.exec(ua);
+                browser.version = match[1] || "0";
+            }
+            if (browser.chrome) {
+                browser.webkit = true;
+            }
+        }
 
-		return browser;
-	};
+        return browser;
+    };
 
     rootKss = kss(document);
     window.kss = window.$ = kss;
