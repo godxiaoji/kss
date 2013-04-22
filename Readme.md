@@ -115,6 +115,14 @@
 
 注：由于现代浏览器的textContent和ie的innerText实现结果还是有一点点区别，所以。
 
+* .data(name[, value])
+
+对应元素读取或写入缓存数据。
+
+* .removeData(name)
+
+对应元素删除缓存数据。
+
 * .remove()
 
 删除相应节点。
@@ -252,6 +260,10 @@ DOM文档加载完毕执行，不同于onload，不包括加载完图片等。�
 * $.now()
 
 返回当前时间戳。
+
+* $.rand(length)
+
+返回随机数（可指定位数）。
 
 * $.isFunction(param)
 

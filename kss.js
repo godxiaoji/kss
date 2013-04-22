@@ -2,7 +2,7 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 1.0.7
+ * @Version 1.0.8
  */
 (function (window, undefined) {
 
@@ -22,7 +22,7 @@
     k_toString = k_obj.toString,
     k_trim = k_str.trim,
 
-    version = "1.0.7",
+    version = "1.0.8",
 
     kss = function (selector, context) {
         return new init(selector, context);
@@ -131,6 +131,18 @@
             }
             return this.pushStack(rets);
         },
+        
+        // 获取所有子节点（update at 2013.04.22）
+        contents : function() {
+            var elems,
+            i = 0,
+            len = this.length,
+            rets = [];
+            for (; i < len; i++) {
+                rets = kss.merge(rets, this[i].childNodes);
+            }
+            return this.pushStack(rets);
+        },
 
         // 获取相应下标的元素对象（update at 2013.02.28）
         eq : function (i) {
@@ -140,12 +152,11 @@
         },
 
         // 遍历元素并执行函数（update at 2013.02.19）
-        each : function (callback, args) {
-            if (kss.isFunction(callback)) {
-                return kss.each(this, callback, args);
-            } else {
-                return this;
+        each : function (fn, args) {
+            if (kss.isFunction(fn)) {
+                return kss.each(this, fn, args);
             }
+            return this;
         },
 
         // 处理过滤元素（add at 2013.02.27）
@@ -475,7 +486,6 @@
             }
             return rets;
         },
-
         // 过滤选择器（update 2013.03.14）
         filter: function(selector, elems) {
             var match,
@@ -526,7 +536,6 @@
             }
             return rets;
         },
-
         // 筛选节点（add 2013.02.25）
         dir : function (elem, dir, besides, one) {
             var matched = [],
@@ -562,8 +571,7 @@
             }
             return this;
         },
-        
-        // 读取设置节点文本内容（update at 2013.03.25）
+        // 读取设置节点文本内容（update at 2013.04.22)
         text : function (value) {
             // 注：textContent !== innerText
             if (typeof value === "undefined") {
@@ -572,7 +580,7 @@
             if (kss.isScalar(value)) {
                 return kss.each(this, function () {
                     if (this.nodeType === 1) {
-                        if (this.textContent || this.textContent == "") {
+                        if (typeof this.textContent === "string") {
                             this.textContent = value;
                         } else {
                             this.innerText = value;
@@ -582,7 +590,6 @@
             }
             return this;
         },
-        
         // 读取设置表单元素的值（update at 2013.03.25）
         val : function (value) {
             if (typeof value === "undefined") {
@@ -596,6 +603,21 @@
                 });
             }
             return this;
+        },
+        // 对应元素读取或写入缓存数据（add at 2013.04.22）
+        data: function(name, value) {
+            if (typeof value === "undefined") {
+                return kss.data(this[0], "data", name);
+            }
+            return kss.each(this, function () {
+                kss.data(this, "data", name, value, true);
+            });
+        },
+        // 对应元素删除缓存数据（add at 2013.04.22）
+        removeData: function(name) {
+            return kss.each(this, function () {
+                kss.removeData(this, "data", name);
+            });
         }
     });
     
@@ -603,7 +625,8 @@
     var rValidchars = /^[\],:{}\s]*$/,
     rValidbraces = /(?:^|:|,)(?:\s*\[)+/g,
     rValidescape = /\\(?:["\\\/bfnrt]|u[\da-fA-F]{4})/g,
-    rValidtokens = /"[^"\\\r\n]*"|true|false|null|-?(?:\d+\.|)\d+(?:[eE][+-]?\d+|)/g;
+    rValidtokens = /"[^"\\\r\n]*"|true|false|null|-?(?:\d+\.|)\d+(?:[eE][+-]?\d+|)/g,
+    rWhitespace = /(^[\s\t\n]+)|([\s\t\n]+$)/g;
 
     kss.extend({
         // 获取当前时间戳（add at 2012.11.25）
@@ -611,8 +634,8 @@
             return (new Date()).getTime();
         },
         // 随机生成数（add at 2013.02.20）
-        rand : function () {
-            return Math.random().toString().substr(2);
+        rand : function (len) {
+            return Math.random().toString().substr(2, len);
         },
         // 判断是否在数组中（update at 2013.03.15）
         inArray : function (value, arr, start) {
@@ -665,7 +688,7 @@
         },
         // 清除两边空格（update at 2012.12.24）
         trim : function (str) {
-            return (str || "").replace(/(^[\s\t\n]+)|(\[\s\t\n]+$)/g, "");
+            return (str || "").replace(rWhitespace, "");
         },
         // 删除节点（add at 2012.12.14）
         remove : function (elem) {
@@ -1104,12 +1127,12 @@
         prop : function (name, value) {
             if (typeof value === "undefined") {
                 var prop = this.attr(name);
-                if (kss.inArray(name, kss.sepProp) >= 0) {
+                if (kss.inArray(name, propAttr) >= 0) {
                     return typeof prop === "string" && (prop === name || prop === "");
                 }
                 return prop;
             }
-            if (kss.inArray(name, kss.sepProp) >= 0 && typeof value === "boolean") {
+            if (kss.inArray(name, propAttr) >= 0 && typeof value === "boolean") {
                 if (value) {
                     value = name;
                 } else {
@@ -1119,6 +1142,8 @@
             return this.attr(name, value);
         }
     });
+    
+    var propAttr = ['disabled', 'checked', 'selected', 'multiple', 'readonly', 'async', 'autofocus'];
 
     // 属性操作
     kss.extend({
@@ -1133,9 +1158,7 @@
             if (elem.nodeType === 1) {
                 elem.removeAttribute(name);
             }
-        },
-        // 需要特殊处理的属性（update at 2013.02.19）
-        sepProp : ['disabled', 'checked', 'selected', 'multiple', 'readonly', 'async', 'autofocus']
+        }
     });
 
     // 样式操作原型链
@@ -1243,88 +1266,84 @@
             if (elem.nodeType !== 1 || typeof name !== "string" || typeof value !== "string") {
                 return;
             }
-            if (elem.style.hasOwnProperty(name)) {
+            if (typeof elem.style[name] !== "undefined") {
                 elem.style[name] = value;
             }
-        },
-
-        // 获取当前CSS（update at 2012.11.26）
-        curCss : function (elem, name) {
-            if (elem.nodeType !== 1) {
-                return undefined;
-            }
-
-            var ret = null;
-
-            if (window.getComputedStyle) {
-                var computed = window.getComputedStyle(elem, null);
-                ret = computed.getPropertyValue(name) || computed[name];
-                return ret;
-            }
-            // for ie
-            else if (document.documentElement.currentStyle) {
-                name = kss.camelCase(name);
-                ret = elem.currentStyle && elem.currentStyle[name];
-
-                if (ret == null && elem.style && elem.style[name]) {
-                    ret = style[name];
-                }
-                // opacity
-
-                // get width and height on px
-                if (/^(height|width)$/.test(name) && !/(px)$/.test(ret)) {
-                    ret = (name == "width") ? elem.offsetWidth : elem.offsetHeight;
-                    if (ret <= 0 || ret == null) {
-                        var pSide = (name == "width") ? ["left", "right"] : ["top", "bottom"];
-                        var client = parseFloat(elem[kss.camelCase("client-" + name)]),
-                        paddingA = parseFloat(kss.curCss(elem, "padding-" + pSide[0])),
-                        paddingB = parseFloat(kss.curCss(elem, "padding-" + pSide[1]));
-                        ret = (client - paddingA - paddingB);
-                    }
-                    ret += "px";
-                }
-
-                if (/(em|pt|mm|cm|pc|in|ex|rem|vw|vh|vm|ch|gr)$/.test(ret)) {
-                    ret = kss.convertPixel(elem, ret);
-                }
-                return ret;
-            }
-            return undefined;
-        },
-
-        // add at 2012.11.26
-        camelCase : function (attr) {
-            return attr.replace(/\-(\w)/g, function (all, letter) {
-                return letter.toUpperCase();
-            });
-        },
-
-        // add at 2012.11.27
-        // From the awesome hack by Dean Edwards
-        // convert em,pc,pt,cm,in,ex to px(no include %)
-        convertPixel : function (elem, value) {
-            var left,
-            rsLeft,
-            ret = value,
-            style = elem.style;
-
-            // cache left/rsLeft
-            left = elem.style.left;
-            rsLeft = elem.runtimeStyle && elem.runtimeStyle.left;
-
-            if (rsLeft)
-                elem.runtimeStyle.left = elem.currentStyle.left;
-
-            style.left = value || 0;
-            ret = style.pixelLeft + "px";
-
-            style.left = left;
-            if (rsLeft)
-                elem.runtimeStyle.left = rsLeft;
-
-            return ret === "" ? "auto" : ret;
         }
     });
+
+    // 获取当前CSS（update at 2013.04.22）
+    var rPosition = /^(top|right|bottom|left)$/,
+        rNumnopx = /(em|pt|mm|cm|pc|in|ex|rem|vw|vh|vm|ch|gr)$/i;
+
+    if(window.getComputedStyle) {
+        kss.getStyles = function(elem) {
+            return window.getComputedStyle(elem, null);
+        };
+
+        kss.curCss = function(elem, name) {
+            var computed = kss.getStyles(elem);
+            ret = computed ? computed.getPropertyValue(name) || computed[name] : undefined;
+            return ret;
+        };
+    }
+    else if(document.documentElement.currentStyle) {
+        kss.getStyles = function(elem) {
+            return elem.currentStyle;
+        };
+
+        kss.curCss = function(elem, name) {
+            name = camelCase(name);
+            var left, rs, rsleft,
+                computed = kss.getStyles(elem),
+                ret = computed ? computed[name] : undefined,
+                style = elem.style;
+
+            if (ret == null && style && style[name]) {
+                ret = style[name];
+            }
+            // opacity
+
+            // 宽高属性单位auto转化为px
+            if (/^(height|width)$/.test(name) && !/(px)$/.test(ret)) {
+                ret = (name == "width") ? elem.offsetWidth : elem.offsetHeight;
+                if (ret <= 0 || ret == null) {
+                    var pSide = (name == "width") ? ["left", "right"] : ["top", "bottom"];
+                    var client = parseFloat(elem[camelCase("client-" + name)]),
+                    paddingA = parseFloat(kss.curCss(elem, "padding-" + pSide[0])),
+                    paddingB = parseFloat(kss.curCss(elem, "padding-" + pSide[1]));
+                    ret = (client - paddingA - paddingB);
+                }
+                return ret + "px";
+            }
+            // 非px属性转化为px
+            // From the awesome hack by Dean Edwards
+            if(rNumnopx.test(ret) && !rPosition.test(name)) {
+                left = style.left;
+                rs = elem.runtimeStyle;
+                rsLeft = rs && rs.left;
+
+                if(rsLeft) {
+                    rs.left = computed.left;
+                }
+
+                style.left = name === "fontSize" ? "1em" : ret;
+                ret = style.pixelLeft + "px";
+
+                style.left = left;
+                if (rsLeft) {
+                    rs.left = rsLeft;
+                }
+            }
+            return ret === "" ? "auto" : ret;
+        };
+    }
+    // 将样式属性转为驼峰式（add at 2012.11.26）
+    function camelCase(name) {
+        return name.replace(/\-(\w)/g, function (all, letter) {
+            return letter.toUpperCase();
+        });
+    }
 
     // 数据请求
     kss.extend({
@@ -1597,7 +1616,7 @@
                 kss.queue(this, "animate", options.fn);
                 
                 for (key in prop) {
-                    if (kss.inArray(key, fxAllow) >= 0) {
+                    if (kss.inArray(key, fxStyleAttr) >= 0) {
                         fx = new kss.fx(this, options, key);
                         from = parseInt(kss(this).css(key));
                         to = parseInt(prop[key]);
@@ -1621,7 +1640,7 @@
 
     var timers = [],
     timerId = null,
-    fxAllow = ["lineHeight", "height", "width", "top", "bottom", "left", "right", "backgroundPositionX", "backgroundPositionY", "marginTop", "marginBottom", "marginLeft", "marginLeft", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight"];
+    fxStyleAttr = ["lineHeight", "height", "width", "top", "bottom", "left", "right", "backgroundPositionX", "backgroundPositionY", "marginTop", "marginBottom", "marginLeft", "marginLeft", "paddingTop", "paddingBottom", "paddingLeft", "paddingRight"];
 
     // 动画模块（update at 2013.03.27）
     kss.fx = function (elem, options, name) {
