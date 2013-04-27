@@ -721,6 +721,8 @@
             }
             kss.error("Invalid JSON: " + data);
         },
+        // 置空函数（add at 2013.04.27）
+        noop: function() {},
         // 抛出错误（add at 2012.12.14）
         error : function (msg) {
             throw new Error(msg);
@@ -1522,7 +1524,7 @@
 
             callback : function (xhr, s) {
                 if (xhr.readyState === 4) {
-                    xhr.onreadystatechange = null;
+                    xhr.onreadystatechange = kss.noop;
                     if (xhr.status >= 200 && xhr.status < 300 || xhr.status === 304) {
                         s.success.call(s.context, ajax.httpData(xhr, s.dataType), xhr.status);
                     } else {
