@@ -315,7 +315,7 @@
                 if (parent && parent.nodeType !== 11) {
                     ret.push(parent);
                 }
-                // 清楚重复
+                // 清除重复
                 ret = kss.uniq(ret);
             }
             return this.pushStack(ret);
@@ -565,7 +565,9 @@
                     if (this.nodeType === 1) {
                         try {
                             this.innerHTML = value;
-                        } catch(e) {}
+                        } catch(e) {
+                            kss.error("innerHTML only read on IE6.");
+                        }
                     }
                 });
             }
@@ -1042,7 +1044,7 @@
         try {
             document.documentElement.doScroll("left");
         } catch (e) {
-            setTimeout(doScrollCheck, 1);
+            setTimeout(doScrollCheck, 50);
             return;
         }
         kss.ready();
@@ -1192,6 +1194,23 @@
             }
             return kss.each(this, function () {
                 kss.removeClass(this, className);
+            });
+        },
+        // 添加删除样式（add at 2013.04.25）
+        toggleClass : function(className, state) {
+            if (typeof className !== "string") {
+                return;
+            }
+            var isBool = typeof state === "boolean";
+            return kss.each(this, function () {
+                if(!isBool) {
+                    state = !kss.hasClass(this, className);
+                }
+                if(state) {
+                    kss.addClass(this, className);
+                } else {
+                    kss.removeClass(this, className);
+                }
             });
         },
         // 读取或这是元素对应样式（update at 2012.11.22）
@@ -1401,7 +1420,7 @@
                 if (s.cache === false) {
                     params = [params, "_=" + kss.now()].join("&");
                 }
-                s.url += s.url.indexOf("?") === -1 ? "?" : "&" + params;
+                s.url += (s.url.indexOf("?") === -1 ? "?" : "&") + params;
             }
 
             if (s.dataType === "script" || s.dataType === "jsonp") {
@@ -1660,9 +1679,8 @@
             kss.fx.tick();
         },
 
-        step : function () {
-            var t = kss.now(),
-                p,
+        step : function (t) {
+            var p,
                 pos;
             if (t >= this.end) {
                 pos = this.to;
@@ -1691,18 +1709,21 @@
     };
 
     kss.fx.tick = function () {
-        if (timerId) {
-            return;
+        var i = 0,
+            fxNow = kss.now();
+        for (; i < timers.length; i++) {
+            timers[i].step(fxNow);
         }
-        timerId = setInterval(function () {
-            var i = 0;
-            for (; i < timers.length; i++) {
-                timers[i].step();
-            }
-            if (timers.length === 0) {
-                kss.fx.stop();
-            }
-        }, 13);
+        if (timers.length === 0) {
+            kss.fx.stop();
+        }
+        fxNow = undefined;
+    };
+    
+    kss.fx.start = function () {
+        if(!timerId) {
+            timerId = setInterval(kss.fx.tick, 13);
+        }
     };
 
     kss.fx.stop = function () {
