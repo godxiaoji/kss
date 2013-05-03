@@ -1859,7 +1859,8 @@
 
         return browser;
     };
-
+    kss.browser = clientMatch();
+    
     rootKss = kss(document);
     window.kss = window.$ = kss;
 
