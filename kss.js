@@ -2,27 +2,27 @@
  * Kss Javascript Class Library
  * @Author  Travis(LinYongji)
  * @Contact http://travisup.com/
- * @Version 1.0.8
+ * @Version 1.0.9
  */
 (function (window, undefined) {
 
     var rootKss,
-
+    
     document = window.document,
     location = window.location,
     navigator = window.navigator,
 
+    version = "1.0.9",
+    class2type = {},
     k_arr = [],
-    k_obj = {},
-    k_str = "",
+
     k_push = k_arr.push,
     k_indexOf = k_arr.indexOf,
     k_splice = k_arr.splice,
     k_sort = k_arr.sort,
-    k_toString = k_obj.toString,
-    k_trim = k_str.trim,
-
-    version = "1.0.8",
+    k_toString = class2type.toString,
+    k_hasOwn = class2type.hasOwnProperty,
+    k_trim = version.trim,
 
     kss = function (selector, context) {
         return new init(selector, context);
@@ -33,7 +33,7 @@
 
     // update at 2013.03.13
     init = function (selector, context) {
-        var match;
+        var match, elem;
 
         // $(undefined/null)
         if (!selector) {
@@ -41,7 +41,7 @@
         }
         //$(node)
         if (selector.nodeType) {
-            this[0] = selector;
+            this.context = this[0] = selector;
             this.length = 1;
             return this;
         }
@@ -50,7 +50,17 @@
             // $("#id")
             match = rIdExpr.exec(selector);
             if (match && match[1] && !context) {
-                return kss(document.getElementById(match[1]));
+                elem = document.getElementById(match[1]);
+                if(elem && elem.parentNode) {
+					if (elem.id !== match[1]) {
+                        return rootKss.find(selector);
+                    }
+                    this.length = 1;
+                    this[0] = elem;
+                }
+                this.context = document;
+                this.selector = selector;
+                return this;
             }
             if (context && context.nodeType === 1) {
                 this.context = context;
@@ -202,6 +212,15 @@
     };
 
     kss.extend({
+        // 判断类型（add at 2013.05.03）
+        type: function(obj) {
+            if(obj == null) {
+                return String(obj);
+            }
+            return typeof obj === "object" || typeof obj === "function" ?
+                class2type[k_toString.call(obj)] || "object" :
+                typeof obj;
+        },
         // 判断是否为函数（add at 2012.11.20）
         isFunction : function (obj) {
             return k_toString.call(obj) === "[object Function]";
@@ -301,6 +320,10 @@
 
             return obj;
         }
+    });
+    
+    kss.each("Boolean Number String Function Array Date RegExp Object Error".split(" "), function(i, name) {
+        class2type["[object " + name + "]"] = name.toLowerCase();
     });
 
     kss.fn.extend({
@@ -433,9 +456,10 @@
     rTagClass = /^(?:(\w*)\.([\w-]+))$/;
 
     kss.extend({
-        // 选择器（update 2013.03.13）
+        // 选择器（update 2013.05.09）
         find : function (selector, parentNode) {
             var match,
+            i,
             m,
             elem,
             elems,
@@ -453,6 +477,16 @@
                         if (elem && elem.parentNode) {
                             if (elem.id === m) {
                                 rets.push(elem);
+                            } else {
+                                //解决低版本ie和某些opera id和name混淆的问题
+                                elems = document.all[m];
+                                if(elems && elems.length) {
+                                    for(i = 1; i < elems.length; i++) {
+                                        if(elems[i].attributes['id'].value === m) {
+                                            rets.push(elems[i]);
+                                        }
+                                    }
+                                }
                             }
                         }
                     } else {
@@ -628,7 +662,7 @@
     rValidbraces = /(?:^|:|,)(?:\s*\[)+/g,
     rValidescape = /\\(?:["\\\/bfnrt]|u[\da-fA-F]{4})/g,
     rValidtokens = /"[^"\\\r\n]*"|true|false|null|-?(?:\d+\.|)\d+(?:[eE][+-]?\d+|)/g,
-    rWhitespace = /(^[\s\t\n]+)|([\s\t\n]+$)/g;
+    rWhitespace = /(^\s+)|(\s+$)/g;
 
     kss.extend({
         // 获取当前时间戳（add at 2012.11.25）
@@ -1182,30 +1216,20 @@
         },
         // 添加Class（update at 2013.02.19）
         addClass : function (className) {
-            if (typeof className !== "string") {
-                return;
-            }
             return kss.each(this, function () {
                 kss.addClass(this, className);
             });
         },
         // 删除Class（update at 2013.02.19）
         removeClass : function (className) {
-            if (typeof className !== "string") {
-                return;
-            }
             return kss.each(this, function () {
                 kss.removeClass(this, className);
             });
         },
         // 添加删除样式（add at 2013.04.25）
         toggleClass : function(className, state) {
-            if (typeof className !== "string") {
-                return;
-            }
-            var isBool = typeof state === "boolean";
             return kss.each(this, function () {
-                if(!isBool) {
+                if(typeof state !== "boolean") {
                     state = !kss.hasClass(this, className);
                 }
                 if(state) {
