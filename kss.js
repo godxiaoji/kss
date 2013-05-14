@@ -2,7 +2,7 @@
 * Kss Javascript Class Library
 * @Author  Travis(LinYongji)
 * @Contact http://travisup.com/
-* @Version 1.1.1
+* @Version 1.1.2
 * @needfix: data event
 */
 (function( window, undefined ) {
@@ -13,7 +13,7 @@ var rootKss,
     location = window.location,
     navigator = window.navigator,
 
-    version = "1.1.1",
+    version = "1.1.2",
     class2type = {},
     k_arr = [],
 
@@ -866,7 +866,7 @@ kss.extend({
 kss.each( ("blur focus focusin focusout load resize scroll unload click dblclick " +
         "mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave " +
         "change select submit keydown keypress keyup error contextmenu").split(" "), function( i, name ) {
-    kss.fn[name] = function( data, fn ) {
+    kss.fn[ name ] = function( data, fn ) {
         return arguments.length > 0 ?
             this.on( name, null, data, fn ) :
             this.trigger( name );
@@ -949,39 +949,38 @@ function returnFalse() {
     return false;
 }
 
+var rKeyEvent = /^key/,
+	rMouseEvent = /^(?:mouse|contextmenu)|click/;
+
 kss.event = {
     // 事件绑定(update at 2013.02.20)
     add: function( elem, type, selector, data, fn ) {
         var handleObj = {},
             handler,
             events,
+            elems,
+            target,
             id = kss.expando;
         // 事件委托
         if ( selector ) {
-            handler = function( e ) {
-                var elems = kss( elem ).find( selector ),
-                evt = window.event ? window.event : e,
-                target = evt.target || evt.srcElement;
-                // 统一事件阻止
-                evt.stopPropagation = evt.stopPropagation || function() {
-                    window.event.cancelBubble = true;
-                };
-                evt.data = data;
+            handler = function( event ) {
+                event = kss.event.fix( event );
+                event.data = data;
+
+                elems = kss( elem ).find( selector );
+                target = event.target;
                 for ( var i = 0; i < elems.length; i++ ) {
                     if ( elems[ i ] == target ) {
-                        return fn.call( target, evt );
+                        return fn.call( target, event );
                     }
                 }
             }
             // 直接绑定
         } else {
-            handler = function( e ) {
-                var evt = window.event ? window.event : e;
-                evt.stopPropagation = evt.stopPropagation || function() {
-                    window.event.cancelBubble = true;
-                };
-                evt.data = data;
-                return fn.call( elem, evt );
+            handler = function( event ) {
+                event = kss.event.fix( event );
+                event.data = data;
+                return fn.call( elem, event );
             };
         }
 
@@ -1043,8 +1042,125 @@ kss.event = {
         }
     },
 
-    // 模拟事件点击(update at 2013.03.25)
-    trigger: function( elem, type ) {
+    // 事件修正(update at 2013.05.13)
+    // 注：按照W3C标准修正
+    fix: function( event ) {
+        var fixHook,
+            i,
+            type;
+        // ie获取全局事件
+        event = event || window.event;
+        if ( event[ kss.expando ] ) {
+			return event;
+		}
+        type = event.type;
+        fixHook = rMouseEvent.test( type ) ? this.mouseHooks :
+				rKeyEvent.test( type ) ? this.keyHooks :
+				null;
+
+        // 修正事件源
+        if ( !event.target ) {
+			event.target = event.srcElement || document;
+		}
+        // 事件源不能是文本节点(chrome>23 & Safari)
+        if ( event.target.nodeType === 3 ) {
+			event.target = event.target.parentNode;
+		}
+        // 添加metaKey
+        event.metaKey = !!event.metaKey;
+
+        // 阻止事件
+        if ( !event.preventDefault ) {
+            event.preventDefault = function() {
+                this.returnValue = false;
+            };
+        }
+        if ( !event.stopPropagation ) {
+            event.stopPropagation = function() {
+                this.cancelBubble = true;
+            };
+        }
+
+        event[ kss.expando ] = true;
+        return fixHook ? fixHook( event ) : event;
+    },
+
+    // 键盘事件修正(update at 2013.05.13)
+    keyHooks: function( event ) {
+        // 添加which
+        if ( event.which == null ) {
+            event.which = event.charCode != null ? event.charCode : event.keyCode;
+        }
+        return event;
+	},
+
+    // 鼠标事件修正(update at 2013.05.13)
+    mouseHooks: function( event ) {
+        var body, eventDoc, doc,
+            button = event.button,
+            fromElement = event.fromElement;
+
+        // 修正鼠标位移
+        if ( event.pageX == null && event.clientX != null ) {
+            eventDoc = event.target.ownerDocument || document;
+            doc = eventDoc.documentElement;
+            body = eventDoc.body;
+
+            event.pageX = event.clientX + ( doc && doc.scrollLeft || body && body.scrollLeft || 0 ) - ( doc && doc.clientLeft || body && body.clientLeft || 0 );
+            event.pageY = event.clientY + ( doc && doc.scrollTop  || body && body.scrollTop  || 0 ) - ( doc && doc.clientTop  || body && body.clientTop  || 0 );
+        }
+
+        // 修正onmouseover/onmouseout情况下触发的relatedTarget
+        if ( !event.relatedTarget && fromElement ) {
+            event.relatedTarget = fromElement === event.target ? event.toElement : fromElement;
+        }
+
+        // 鼠标点击按键(1: 左键, 2: 中键, 3: 右键)
+        // 注：button差异性较大，不建议使用(W3C: 0,1,2, IE: 1,4,2)
+        if ( !event.which && typeof button !== "undefined" ) {
+            event.which = [ 0, 1, 3, 0, 2, 0, 0, 0 ][ button ];
+        }
+
+        return event;
+	},
+    
+    // 处理事件点击(update at 2013.05.14)
+    trigger: function( elem, type, data, onlyHandlers ) {
+        var special = kss.event.special[ type ] || null;
+        // 一些特殊事件执行
+        if ( !onlyHandlers && special && special.call( elem ) === false ) {
+			return;
+        // 有原生事件就用原生事件
+		} else if ( !onlyHandlers && elem[ type ] ) {
+            elem[ type ].call( elem );
+            return;
+        }
+        // 其他一律采用模拟事件
+        kss.event.handlers( elem, type, data );
+    },
+    
+    // 特殊事件函数(add at 2013.05.14)
+    special: {
+        focus: function() {
+            if ( this !== document.activeElement && this.focus ) {
+                try {
+                    this.focus();
+                    return false;
+                } catch ( e ) {
+                    // ie9以下没效果
+                }
+            }
+		},
+		blur: function() {
+            if ( this === document.activeElement && this.blur ) {
+                this.blur();
+                return false;
+            }
+		}
+    },
+
+    // 模拟事件点击(update at 2013.05.14)
+    handlers: function( elem, type, data ) {
         var i = 0,
             events, len, event, parent, isPropagationStopped;
 
@@ -1055,8 +1171,9 @@ kss.event = {
             event = {
                 target: elem,
                 currentTarget: elem,
-                type: type,            
-                stopPropagation: function(){
+                type: type,
+                data: data,
+                stopPropagation: function() {
                     isPropagationStopped = true;
                 }
             };
@@ -1068,7 +1185,7 @@ kss.event = {
             parent = elem.parentNode;
             // 模拟事件冒泡
             if ( parent && !isPropagationStopped ) {
-                kss.event.trigger( parent, type );
+                kss.event.handlers( parent, type );
             }
         }
     }
