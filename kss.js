@@ -685,7 +685,7 @@ var rValidchars = /^[\],:{}\s]*$/,
     rValidbraces = /(?:^|:|,)(?:\s*\[)+/g,
     rValidescape = /\\(?:["\\\/bfnrt]|u[\da-fA-F]{4})/g,
     rValidtokens = /"[^"\\\r\n]*"|true|false|null|-?(?:\d+\.|)\d+(?:[eE][+-]?\d+|)/g,
-    rTrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g ;
+    rTrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
 
 kss.extend({
     // 获取当前时间戳(add at 2012.11.25)
@@ -1939,7 +1939,7 @@ kss.extend({
                 for ( len = cookies.length; i < len; i++ ) {
                     cookie = kss.trim( cookies[ i ] );
                     if ( cookie.indexOf( name + "=" ) === 0 ) {
-                        ret = cookie.substr( name.length + 1 );
+                        ret = decodeURIComponent( cookie.substr( name.length + 1 ) );
                         break;
                     }
                 }
@@ -1954,8 +1954,8 @@ kss.extend({
             options.expires = -1;
         }
 
-        if ( options.expires && ( typeof options.expires == "number" || options.expires.toUTCString ) ) {
-            if ( typeof options.expires == "number" ) {
+        if ( options.expires && ( typeof options.expires === "number" || options.expires.toUTCString ) ) {
+            if ( typeof options.expires === "number" ) {
                 date = new Date();
                 date.setTime( date.getTime() + options.expires * 1000 );
             } else {
