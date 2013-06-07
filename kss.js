@@ -2,7 +2,7 @@
 * Kss Javascript Class Library
 * @Author  Travis(LinYongji)
 * @Contact http://travisup.com/
-* @Version 1.1.2
+* @Version 1.1.3
 * @needfix: data event
 */
 (function( window, undefined ) {
@@ -13,7 +13,7 @@ var rootKss,
     location = window.location,
     navigator = window.navigator,
 
-    version = "1.1.2",
+    version = "1.1.3",
     class2type = {},
     k_arr = [],
 
@@ -995,9 +995,9 @@ kss.event = {
 
         events.push( handleObj );
 
-        if ( window.addEventListener ) {
+        if ( elem.addEventListener ) {
             elem.addEventListener( type, handler, false );
-        } else if ( document.attachEvent ) {
+        } else if ( elem.attachEvent ) {
             elem.attachEvent( "on" + type, handler );
         } else {
             elem[ "on" + type ] = handler;
@@ -1028,7 +1028,7 @@ kss.event = {
 
                 if ( elem.removeEventListener ) {
                     elem.removeEventListener( type, handler, false );
-                } else if ( document.detachEvent ) {
+                } else if ( elem.detachEvent ) {
                     elem.detachEvent( "on" + type, handler );
                 } else {
                     elem[ "on" + type ] = null;
@@ -1266,67 +1266,77 @@ kss.extend({
     }
 });
 
-// 属性操作原型链
-kss.fn.extend({
-    // 读取或设置元素属性(update at 2013.02.19)
-    attr: function( name, value ) {
-        if (typeof name !== "string") {
-            return this;
-        }
-        if ( typeof value === "undefined" ) {
-            return this[0] && this[0].nodeType === 1 ? this[0].getAttribute( name ) : undefined;
-        } else if ( kss.isScalar( value ) ) {
-            return kss.each( this, function() {
-                kss.setAttr( this, name, value );
-            });
-        }
-        return this;
-    },
-    // 删除元素指定属性(update at 2013.02.19)
-    removeAttr: function( name ) {
-        if ( typeof name !== "string" ) {
-            return this;
-        }
-        return kss.each( this, function() {
-            kss.removeAttr( this, name );
-        });
-    },
-    // 特殊属性处理(update at 2013.02.19)
-    prop: function(name, value) {
-        var prop;
-        if ( typeof value === "undefined" ) {
-            prop = this.attr( name );
-            if ( kss.inArray( name, propAttr ) >= 0 ) {
-                return typeof prop === "string" && (prop === name || prop === "");
-            }
-            return prop;
-        }
-        if ( kss.inArray( name, propAttr ) >= 0 && typeof value === "boolean" ) {
-            if ( value ) {
-                value = name;
-            } else {
-                return this.removeAttr( name );
-            }
-        }
-        return this.attr( name, value );
-    }
+var rBooleanProp = /^(?:checked|selected|async|autofocus|autoplay|controls|defer|disabled|hidden|ismap|loop|multiple|open|readonly|required|scoped)$/i,
+    propFix = {
+		"for": "htmlFor",
+		"class": "className"
+	};
+
+kss.each("tabIndex readOnly maxLength cellSpacing cellPadding rowSpan colSpan useMap frameBorder contentEditable".split(" "), function() {
+	propFix[ this.toLowerCase() ] = this;
 });
 
-var propAttr = [ "disabled", "checked", "selected", "multiple", "readonly", "async", "autofocus" ];
+// 属性操作原型链
+kss.fn.extend({
+    // 读取或设置元素属性(update at 2013.06.07)
+    attr: function( name, value ) {
+        var ret;
+        if ( typeof value === "undefined" ) {
+            if( this[0] && this[0].nodeType === 1 ) {
+                ret = this[0].getAttribute( name );
+            }
+            // 属性不存在，返回undefined
+            return ret == null ? undefined : ret;
 
-// 属性操作
-kss.extend({
-    // 设置元素属性(只支持元素 update at 2013.02.19)
-    setAttr: function( elem, name, value ) {
-        if ( elem.nodeType === 1 ) {
-            elem.setAttribute( name, value );
         }
+        // value设置为null也是删除属性
+        if ( value === null ) {
+            return this.removeAttr( name );
+        }        
+        // 判断是否bool属性
+        if ( rBooleanProp.test( name ) ) {
+            if ( value === false ) {
+                return this.removeAttr( name );
+            } else {
+                value = name;
+            }
+        }
+
+        return kss.each( this, function() {
+            if ( this.nodeType === 1 ) {
+                this.setAttribute( name, value );
+            }
+        });
     },
-    // 删除元素指定属性(只支持元素 update at 2013.02.19)
-    removeAttr: function( elem, name ) {
-        if ( elem.nodeType === 1 ) {
-            elem.removeAttribute( name );
+    // 删除元素指定属性(update at 2013.06.07)
+    removeAttr: function( name ) {
+        return kss.each( this, function() {
+            if ( this.nodeType === 1 ) {
+                // 如果是布尔属性，顺便把属性置false
+                if( rBooleanProp.test( name ) ) {
+                    this[ propFix[ name ] || name ] = false;
+                }
+                this.removeAttribute( name );
+            }
+        });
+    },
+    // Property属性处理(update at 2013.06.07)
+    prop: function( name, value ) {
+        name = propFix[ name ] || name;
+
+        if ( typeof value === "undefined" ) {
+            return this[0][ name ];
         }
+        return kss.each( this, function() {
+            this[ name ] = value;
+        });
+    },
+    // 删除Property属性(update at 2013.06.07)
+    removeProp: function( name ) {
+        name = propFix[ name ] || name;
+        return kss.each( this, function() {
+            delete this[ name ];
+        });
     }
 });
 
@@ -1930,7 +1940,7 @@ kss.extend({
             secure;
 
         if ( name == null ) {
-            return null;
+            return undefined;
         }
         // 读取cookie
         if ( typeof value === "undefined" ) {
