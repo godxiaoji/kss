@@ -7,6 +7,8 @@
 */
 (function( window, undefined ) {
 
+//"use strict";
+
 var rootKss,
 
     document = window.document,
@@ -120,13 +122,13 @@ kss.fn = {
         }
 
         // 父集为多个节点时需要排重
-        if( len > 1 && rets[1] ) {
+        if ( len > 1 && rets[1] ) {
             rets = kss.uniq( rets );
         }
         obj = this.pushStack( rets );
 
         // 还有后代节点继续遍历
-        if( obj.length > 0 && match[2] && match[3] ) {
+        if ( obj.length > 0 && match[2] && match[3] ) {
             return obj.find( match[3] );
         }
         return obj;
@@ -211,7 +213,7 @@ kss.fn.extend = kss.extend = function() {
         len = arguments.length;
 
     // 只传第一个参数则把对象继承到kss库中
-    if( len === 1 ) {
+    if ( len === 1 ) {
         target = this;
         --i;
     }
@@ -232,7 +234,7 @@ kss.fn.extend = kss.extend = function() {
 kss.extend({
     // 判断类型(add at 2013.05.03)
     type: function( obj ) {
-        if( obj == null ) {
+        if ( obj == null ) {
             return String( obj );
         }
         return typeof obj === "object" || typeof obj === "function" ?
@@ -396,17 +398,17 @@ kss.fn.extend({
         var frag, nodes, clone,
             i = 0,
             len = this.length;
-        if( len === 0 ) {
+        if ( len === 0 ) {
             return this;
         }
-        if( typeof args[0] === "string" ) {
+        if ( typeof args[0] === "string" ) {
             nodes = kss.parseNodes( args[0] );
             frag = kss.buildFragment( nodes );
-        } else if( args[0] && args[0].nodeType ) {
+        } else if ( args[0] && args[0].nodeType ) {
             frag = nodes = args[0];
         }
-        if( frag ) {
-            for( ; i < len; i++ ) {
+        if ( frag ) {
+            for ( ; i < len; i++ ) {
                 clone = frag.cloneNode( true );
                 callback.call( this[ i ], clone );
             }
@@ -464,7 +466,7 @@ kss.extend({
         var frag = document.createDocumentFragment(),
             i = 0,
             len = nodes.length;
-        for( ; i < len; i++ ) {
+        for ( ; i < len; i++ ) {
             frag.appendChild( nodes[ i ] );
         }
         return frag;
@@ -610,21 +612,25 @@ kss.fn.extend({
     // 读取设置节点内容(update at 2013.03.25)
     html: function( value ) {
         if ( typeof value === "undefined" ) {
-            return this[0] && this[0].nodeType === 1 ? this[0].innerHTML : null;
+            return this[0] && this[0].nodeType === 1 ?
+                this[0].innerHTML :
+                undefined;
         }
-        // 注：ie table等不支持写入，这里没做兼容
-        if ( kss.isScalar( value ) ) {
-            return kss.each( this, function() {
-                if ( this.nodeType === 1 ) {
-                    try {
-                        this.innerHTML = value;
-                    } catch(e) {
-                        kss.error("innerHTML only read on IE6.");
-                    }
+        // 将value转化为string
+        value = value == null ? "" : value + "";
+
+        return kss.each( this, function() {
+            if ( this.nodeType === 1 ) {
+                try {
+                    this.innerHTML = value;
+                } catch(e) {
+                    // 注：ie table等innerHTML只读，尝试转化为节点插入
+                    value = kss.parseNodes( value );
+                    this.innerText = "";
+                    this.appendChild( value );
                 }
-            });
-        }
-        return this;
+            }
+        });
     },
     // 读取设置节点文本内容(update at 2013.04.22)
     text: function( value ) {
@@ -632,36 +638,36 @@ kss.fn.extend({
         if ( typeof value === "undefined" ) {
             return this[0] && this[0].nodeType === 1 ?
                 typeof this[0].textContent === "string" ? this[0].textContent : this[0].innerText :
-                "";
+                undefined;
         }
-        if ( kss.isScalar( value ) ) {
-            return kss.each( this, function() {
-                if ( this.nodeType === 1 ) {
-                    if ( typeof this.textContent === "string" ) {
-                        this.textContent = value;
-                    } else {
-                        this.innerText = value;
-                    }
+        // 将value转化为string
+        value = value == null ? "" : value + "";
+
+        return kss.each( this, function() {
+            if ( this.nodeType === 1 ) {
+                if ( typeof this.textContent === "string" ) {
+                    this.textContent = value;
+                } else {
+                    this.innerText = value;
                 }
-            });
-        }
-        return this;
+            }
+        });
     },
-    // 读取设置表单元素的值(update at 2013.03.25)
+    // 读取设置表单元素的值(update at 2013.06.08)
     val: function( value ) {
         if ( typeof value === "undefined" ) {
             return this[0] && this[0].nodeType === 1 && typeof this[0].value !== "undefined" ?
                 this[0].value :
                 undefined;
         }
-        if ( kss.isScalar( value ) ) {
-            return kss.each( this, function() {
-                if ( typeof this.value !== "undefined" ) {
-                    this.value = value;
-                }
-            });
-        }
-        return this;
+        // 将value转化为string
+        value = value == null ? "" : value + "";
+        
+        return kss.each( this, function() {
+            if ( typeof this.value !== "undefined" ) {
+                this.value = value;
+            }
+        });
     },
     // 对应元素读取或写入缓存数据(add at 2013.04.22)
     data: function( name, value ) {
@@ -792,7 +798,7 @@ kss.extend({
     // 获取数据索引(update at 2013.03.18)
     getCacheIndex: function( elem, isSet ) {
         var id = kss.expando;
-        if( elem.nodeType === 1 ) {
+        if ( elem.nodeType === 1 ) {
             return elem[ id ] || !isSet ? elem[id] : ( elem[ id ] = ++kss.guid );
         }
         return elem.nodeType === 9 ? 1 : 0;
@@ -803,17 +809,17 @@ kss.extend({
             isRead = typeof value === "undefined" ? true: false,
             index = kss.getCacheIndex(elem, !isRead);
             
-        if( isRead ) {
+        if ( isRead ) {
             return index && cache[ index ] && cache[ index ][ type ] && cache[ index ][ type ][ name ] || undefined;
         }
         
         cache = cache[ index ] = cache[ index ] || {};
         
-        if( !cache[ type ] ) {
+        if ( !cache[ type ] ) {
             cache[ type ] = {};
         }
         
-        if( overwrite || typeof cache[ type ][ name ] === "undefined" ) {
+        if ( overwrite || typeof cache[ type ][ name ] === "undefined" ) {
             cache[ type ][ name ] =  value;
         }
         
@@ -825,16 +831,16 @@ kss.extend({
             cache = kss.cache,
             index = kss.getCacheIndex( elem );
             
-        if( index && (data = cache[ index ]) ) {
-            if( data[ type ] ) {
-                if(name) {
+        if ( index && (data = cache[ index ]) ) {
+            if ( data[ type ] ) {
+                if ( name ) {
                     delete data[ type ][ name ];
                 } else {
                     delete data[ type ];
                 }
             }
             
-            if( kss.isEmptyObject( data[ type ] ) ) {
+            if ( kss.isEmptyObject( data[ type ] ) ) {
                 delete data[ type ];
             }
         }
@@ -930,12 +936,12 @@ kss.fn.extend({
     },
     // 文档完成事件(update at 2013.05.10)
     ready: function( fn ) {
-        if( kss.isFunction( fn ) ) {
+        if ( kss.isFunction( fn ) ) {
             if ( kss.isReady ) {
                 fn.call( document, kss );
             } else if ( readyList ) {
                 readyList.push( fn );
-                if( !readyBound ) {
+                if ( !readyBound ) {
                     readyAttach();
                 }
             }
@@ -1037,7 +1043,7 @@ kss.event = {
             }
         }
         
-        if( events.length === 0 ) {
+        if ( events.length === 0 ) {
             kss.removeData( elem, "events", type );
         }
     },
@@ -1166,7 +1172,7 @@ kss.event = {
 
         events = kss.data( elem, "events", type );
 
-        if( events ) {
+        if ( events ) {
             // 修正Event对象
             event = {
                 target: elem,
@@ -1178,7 +1184,7 @@ kss.event = {
                 }
             };
 
-            for( len = events.length; i < len; i++ ){
+            for ( len = events.length; i < len; i++ ){
                 events[ i ].handler.call( elem, event );
             }
 
@@ -1266,7 +1272,7 @@ kss.extend({
     }
 });
 
-var rBooleanProp = /^(?:checked|selected|async|autofocus|autoplay|controls|defer|disabled|hidden|ismap|loop|multiple|open|readonly|required|scoped)$/i,
+var rBoolean = /^(?:checked|selected|async|autofocus|autoplay|controls|defer|disabled|hidden|ismap|loop|multiple|open|readonly|required|scoped)$/i,
     propFix = {
 		"for": "htmlFor",
 		"class": "className"
@@ -1278,11 +1284,11 @@ kss.each("tabIndex readOnly maxLength cellSpacing cellPadding rowSpan colSpan us
 
 // 属性操作原型链
 kss.fn.extend({
-    // 读取或设置元素属性(update at 2013.06.07)
+    // 读取或设置元素Attribute属性(update at 2013.06.07)
     attr: function( name, value ) {
         var ret;
         if ( typeof value === "undefined" ) {
-            if( this[0] && this[0].nodeType === 1 ) {
+            if ( this[0] && this[0].nodeType === 1 ) {
                 ret = this[0].getAttribute( name );
             }
             // 属性不存在，返回undefined
@@ -1294,7 +1300,7 @@ kss.fn.extend({
             return this.removeAttr( name );
         }        
         // 判断是否bool属性
-        if ( rBooleanProp.test( name ) ) {
+        if ( rBoolean.test( name ) ) {
             if ( value === false ) {
                 return this.removeAttr( name );
             } else {
@@ -1308,19 +1314,19 @@ kss.fn.extend({
             }
         });
     },
-    // 删除元素指定属性(update at 2013.06.07)
+    // 删除元素指定Attribute属性(update at 2013.06.07)
     removeAttr: function( name ) {
         return kss.each( this, function() {
             if ( this.nodeType === 1 ) {
                 // 如果是布尔属性，顺便把属性置false
-                if( rBooleanProp.test( name ) ) {
+                if ( rBoolean.test( name ) ) {
                     this[ propFix[ name ] || name ] = false;
                 }
                 this.removeAttribute( name );
             }
         });
     },
-    // Property属性处理(update at 2013.06.07)
+    // 读取或设置元素Property属性处理(update at 2013.06.07)
     prop: function( name, value ) {
         name = propFix[ name ] || name;
 
@@ -1331,7 +1337,7 @@ kss.fn.extend({
             this[ name ] = value;
         });
     },
-    // 删除Property属性(update at 2013.06.07)
+    // 删除元素指定Property属性(update at 2013.06.07)
     removeProp: function( name ) {
         name = propFix[ name ] || name;
         return kss.each( this, function() {
@@ -1369,10 +1375,10 @@ kss.fn.extend({
     // 添加删除样式(add at 2013.04.25)
     toggleClass: function( className, state ) {
         return kss.each( this, function() {
-            if( typeof state !== "boolean" ) {
+            if ( typeof state !== "boolean" ) {
                 state = !kss.hasClass( this, className );
             }
-            if( state ) {
+            if ( state ) {
                 kss.addClass( this, className );
             } else {
                 kss.removeClass( this, className );
@@ -1461,7 +1467,7 @@ kss.extend({
 var rPosition = /^(top|right|bottom|left)$/,
     rNumnopx = /(em|pt|mm|cm|pc|in|ex|rem|vw|vh|vm|ch|gr)$/i;
 
-if( window.getComputedStyle ) {
+if ( window.getComputedStyle ) {
     kss.getStyles = function( elem ) {
         return window.getComputedStyle( elem, null );
     };
@@ -1472,7 +1478,7 @@ if( window.getComputedStyle ) {
         return ret;
     };
 }
-else if( document.documentElement.currentStyle ) {
+else if ( document.documentElement.currentStyle ) {
     kss.getStyles = function( elem ) {
         return elem.currentStyle;
     };
@@ -1503,12 +1509,12 @@ else if( document.documentElement.currentStyle ) {
         }
         // 非px属性转化为px
         // From the awesome hack by Dean Edwards
-        if( rNumnopx.test(ret) && !rPosition.test(name) ) {
+        if ( rNumnopx.test(ret) && !rPosition.test(name) ) {
             left = style.left;
             rs = elem.runtimeStyle;
             rsLeft = rs && rs.left;
 
-            if( rsLeft ) {
+            if ( rsLeft ) {
                 rs.left = computed.left;
             }
 
@@ -1891,7 +1897,7 @@ kss.fx = {
     },
 
     start: function() {
-        if( !timerId ) {
+        if ( !timerId ) {
             timerId = setInterval( kss.fx.tick, 13 );
         }
     },
@@ -1986,18 +1992,18 @@ kss.extend({
 // 浏览器检测(update at 2012.11.23)
 var clientMatch = function() {
     var ua = navigator.userAgent.toLowerCase(),
-        match;
+        match,
+        browser = {
+            ie: false,
+            firefox: false,
+            chrome: false,
+            webkit: false,
+            safari: false,
+            opera: false,
 
-    browser = {
-        ie: false,
-        firefox: false,
-        chrome: false,
-        webkit: false,
-        safari: false,
-        opera: false,
+            version : ""
+        };
 
-        version : ""
-    };
     // Opera通过特有属性判断
     if ( window.opera ) {
         browser.version = window.opera.version();
