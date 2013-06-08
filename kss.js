@@ -2,7 +2,7 @@
 * Kss Javascript Class Library
 * @Author  Travis(LinYongji)
 * @Contact http://travisup.com/
-* @Version 1.1.3
+* @Version 1.1.4
 * @needfix: data event
 */
 (function( window, undefined ) {
@@ -15,7 +15,7 @@ var rootKss,
     location = window.location,
     navigator = window.navigator,
 
-    version = "1.1.3",
+    version = "1.1.4",
     class2type = {},
     k_arr = [],
 
@@ -31,7 +31,7 @@ var rootKss,
     rMultiSelector = /^(?:([\w-#\.]+)([\s]?)([\w-#\.\s>]*))$/,
 
     kss = function( selector, context ) {
-        return new init(selector, context);
+        return new init( selector, context );
     },
 
     // update at 2013.03.13
@@ -347,24 +347,31 @@ kss.each("Boolean Number String Function Array Date RegExp Object Error".split("
 });
 
 kss.fn.extend({
-    // 获取元素父节点(update at 2012.11.21)
+    // 获取元素父节点(update at 2013.06.08)
     parent: function() {
+        return this.parents();
+    },
+    // 获取元素匹配的上级节点(add 2013.06.08)
+    parents: function( selector ) {
         var rets = [],
             elem,
             i = 0,
             len = this.length;
 
         for ( ; i < len; i++ ) {
-            elem = this[ i ].parentNode;
-            if ( elem && elem.nodeType !== 11 ) {
-                rets.push( elem );
+            elem = this[ i ];
+            while ( elem = elem.parentNode ) {
+                // 如果selector不为空，不断往上遍历
+                if ( elem.nodeType !== 11 && (selector == null || kss.filter( selector, [ elem ] ).length) ) {
+                    rets.push( elem );
+                    break;
+                }
             }
-            // 清除重复
-            rets = kss.uniq( rets );
         }
+        // 清除重复
+        rets = kss.uniq( rets );
         return this.pushStack( rets );
     },
-
     // 返回元素之后第一个兄弟节点(add 2013.02.25)
     next: function() {
         return this[0] ? this.pushStack( kss.dir( this[0], "nextSibling", this[0], true ) ) : kss();

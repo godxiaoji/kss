@@ -31,6 +31,10 @@
 
 返回父节点的kss对象，已排重。
 
+* .parents([selector])
+
+返回上级节点对应选择器的kss对象，已排重。
+
 * .next()
 
 返回kss对象第一个元素之后第一个兄弟节点。
@@ -89,9 +93,13 @@
 
 删除元素相应属性。
 
-* .prop(name)
+* .prop(name[, value])
 
-同attr(), 某些元素属性特殊返回，如`checked`，返回true或false。
+读取或设置节点的Property属性。
+
+* .removeProp(name)
+
+删除节点的Property属性，如果是原生属性还是少删为妙。
 
 * .val([value])
 
@@ -104,8 +112,6 @@
 不传入参数返回kss对象中第一个节点的html内容。
 
 传入字符串设置节点的html内容，如：`$("div").html("<p>kss</p>")`。
-
-注：在ie低版本中，表格节点只支持读取，不支持设置，这点该库尚未做兼容。
 
 * .text([string])
 
