@@ -3,7 +3,6 @@
 * @Author  Travis(LinYongji)
 * @Contact http://travisup.com/
 * @Version 1.1.4
-* @needfix: data event
 */
 (function( window, undefined ) {
 
@@ -153,7 +152,7 @@ kss.fn = {
         rets = kss.uniq( rets );
         return this.pushStack( rets );
     },
-    
+
     // 获取所有子节点(update at 2013.04.22)
     contents: function() {
         var elems,
@@ -1140,14 +1139,19 @@ kss.event = {
     // 处理事件点击(update at 2013.05.14)
     trigger: function( elem, type, data, onlyHandlers ) {
         var special = kss.event.special[ type ] || null;
-        // 一些特殊事件执行
-        if ( !onlyHandlers && special && special.call( elem ) === false ) {
-			return;
-        // 有原生事件就用原生事件
-		} else if ( !onlyHandlers && elem[ type ] ) {
-            elem[ type ].call( elem );
-            return;
-        }
+        if ( !onlyHandlers ) {
+            // 一些特殊事件执行
+            if ( special && special.call( elem ) === false ) {
+                return;
+            // 有原生事件就用原生事件 
+            } else if ( kss.isFunction( elem[ type ] ) ) {
+                elem[ type ].call( elem );
+                return;
+            } else if ( kss.isFunction( elem[ 'on'+type ] ) ) {
+                elem[ 'on'+type ].call( elem );
+                return;
+            }
+		}
         // 其他一律采用模拟事件
         kss.event.handlers( elem, type, data );
     },
