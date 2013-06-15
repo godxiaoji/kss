@@ -1474,9 +1474,10 @@ kss.extend({
     }
 });
 
-// 获取当前CSS(update at 2013.04.22)
+// 获取当前CSS(update at 2013.06.15)
 var rPosition = /^(top|right|bottom|left)$/,
-    rNumnopx = /(em|pt|mm|cm|pc|in|ex|rem|vw|vh|vm|ch|gr)$/i;
+    rNumnopx = /(em|pt|mm|cm|pc|in|ex|rem|vw|vh|vm|ch|gr)$/i,
+    rOpacity = /opacity\s*=\s*([^)]*)/;
 
 if ( window.getComputedStyle ) {
     kss.getStyles = function( elem ) {
@@ -1495,32 +1496,27 @@ else if ( document.documentElement.currentStyle ) {
     };
 
     kss.curCss = function( elem, name ) {
-        name = camelCase(name);
-        var left, rs, rsleft,
+        var left, rs, rsleft, ret,
             computed = kss.getStyles( elem ),
-            ret = computed ? computed[ name ] : undefined,
             style = elem.style;
+
+        name = camelCase( name );
+        ret = computed ? computed[ name ] : undefined;
 
         if ( ret == null && style && style[ name ] ) {
             ret = style[ name ];
         }
         // opacity
-
-        // 宽高属性单位auto转化为px
-        if ( /^(height|width)$/.test(name) && !/(px)$/.test(ret) ) {
-            ret = name == "width" ? elem.offsetWidth : elem.offsetHeight;
-            if ( ret <= 0 || ret == null ) {
-                var pSide = name == "width" ? ["left", "right"] : ["top", "bottom"];
-                var client = parseFloat( elem[ camelCase("client-" + name) ] ),
-                paddingA = parseFloat( kss.curCss( elem, "padding-" + pSide[0] ) ),
-                paddingB = parseFloat( kss.curCss( elem, "padding-" + pSide[1] ) );
-                ret = (client - paddingA - paddingB);
-            }
-            return ret + "px";
+        if ( name === "opacity" && typeof style.opacity === "undefined" ) {
+            return getOpacity( elem, computed );
+        }
+        // width or height
+        if ( /^(height|width)$/.test( name ) && !/(px)$/.test( ret ) ) {
+            return getWidthOrHeight( elem, name );
         }
         // 非px属性转化为px
         // From the awesome hack by Dean Edwards
-        if ( rNumnopx.test(ret) && !rPosition.test(name) ) {
+        if ( rNumnopx.test( ret ) && !rPosition.test( name ) ) {
             left = style.left;
             rs = elem.runtimeStyle;
             rsLeft = rs && rs.left;
@@ -1545,6 +1541,27 @@ function camelCase( name ) {
     return name.replace(/\-(\w)/g, function( all, letter ) {
         return letter.toUpperCase();
     });
+}
+
+// 宽高属性单位auto转化为px(update at 2013.04.22)
+// IE hack
+function getWidthOrHeight( elem , name ) {
+    var padding = name == "width" ? ["left", "right"] : ["top", "bottom"],
+        ret = elem[ camelCase("offset-" + name) ];
+    if ( ret <= 0 || ret == null ) {
+        ret = parseFloat( elem[ camelCase( "client-" + name ) ] ) -
+            parseFloat( kss.curCss( elem, "padding-" + padding[0] ) ) -
+            parseFloat( kss.curCss( elem, "padding-" + padding[1] ) );
+    }
+    return ret + "px";
+}
+
+// 滤镜获取透明度(add at 2013.06.15)
+// IE hack
+function getOpacity( elem, computed ) {
+    var filter = computed ? computed.filter : elem.style.filter || "",
+        match = rOpacity.exec( filter );
+    return match && match[1] ? 0.01 * parseFloat( match[1] ) : ( computed ? "1" : "" );
 }
 
 // 数据请求
