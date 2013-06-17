@@ -997,7 +997,7 @@ kss.event = {
         }
 
         // 事件缓存
-        fn[ id ] = kss.getCacheIndex( elem, true );
+        fn[ id ] = fn[ id ] || ++kss.guid;
         events = kss.data( elem, "events", type, [] );
 
         handleObj.handler = handler;
