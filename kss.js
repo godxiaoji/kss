@@ -2,7 +2,7 @@
 * Kss Javascript Class Library
 * @Author  Travis(LinYongji)
 * @Contact http://travisup.com/
-* @Version 1.1.4
+* @Version 1.1.5
 */
 (function( window, undefined ) {
 
@@ -14,7 +14,7 @@ var rootKss,
     location = window.location,
     navigator = window.navigator,
 
-    version = "1.1.4",
+    version = "1.1.5",
     class2type = {},
     k_arr = [],
 
@@ -483,17 +483,19 @@ var rQuickExpr = /^(?:#([\w-]+)|(\w+)|\.([\w-]+))$/,
     rTagClass = /^(?:(\w*)\.([\w-]+))$/;
 
 kss.extend({
-    // 选择器(update 2013.05.09)
+    // 选择器(update 2013.06.25)
     find: function( selector, parentNode ) {
-        var match,
-        i,
-        m,
-        elem,
-        elems,
-        rets,
-        tag;
+        var match, m, tag,
+            i, elem, elems,
+            rets = [];
 
-        rets = [];
+        // 原生匹配
+        if ( parentNode.querySelectorAll ) {
+            if ( rQuickExpr.test( selector ) || rTagClass.test( selector ) ) {
+                rets = parentNode.querySelectorAll( selector );
+            }
+            return rets;
+        }
         // 快速匹配
         match = rQuickExpr.exec( selector );
         if ( match ) {
@@ -549,12 +551,10 @@ kss.extend({
     },
     // 过滤选择器(update 2013.03.14)
     filter: function( selector, elems ) {
-        var match,
-        m,
-        tag,
-        i = 0,
-        len = elems.length,
-        rets = [];
+        var match, m, tag,
+            i = 0,
+            len = elems.length,
+            rets = [];
 
         // 快速匹配
         match = rQuickExpr.exec( selector );
@@ -601,6 +601,7 @@ kss.extend({
     dir: function( elem, dir, besides, one ) {
         var matched = [],
             cur = elem;
+
         while ( cur && cur.nodeType !== 9 ) {
             if ( cur.nodeType === 1 && cur !== besides ) {
                 matched.push( cur );
@@ -1879,7 +1880,7 @@ kss.fx.prototype = {
         this.to = to;
         
         timers.push( this );
-        kss.fx.tick();
+        kss.fx.start();
     },
 
     step: function( t ) {
@@ -1902,6 +1903,7 @@ kss.fx.prototype = {
 
     stop: function() {
         var i = timers.length - 1;
+
         for ( ; i >= 0; i-- ) {
             if ( timers[ i ] === this ) {
                 timers.splice( i, 1 );
@@ -1911,29 +1913,27 @@ kss.fx.prototype = {
     }
 };
 
-kss.fx = {
-    tick: function() {
-        var i = 0,
-            fxNow = kss.now();
-        for ( ; i < timers.length; i++ ) {
-            timers[ i ].step( fxNow );
-        }
-        if ( timers.length === 0 ) {
-            kss.fx.stop();
-        }
-        fxNow = undefined;
-    },
-
-    start: function() {
-        if ( !timerId ) {
-            timerId = setInterval( kss.fx.tick, 13 );
-        }
-    },
-
-    stop: function() {
-        clearInterval( timerId );
-        timerId = null;
+kss.fx.tick = function() {
+    var i = 0,
+        fxNow = kss.now();
+    for ( ; i < timers.length; i++ ) {
+        timers[ i ].step( fxNow );
     }
+    if ( timers.length === 0 ) {
+        kss.fx.stop();
+    }
+    fxNow = undefined;
+};
+
+kss.fx.start = function() {
+    if ( !timerId ) {
+        timerId = setInterval( kss.fx.tick, 13 );
+    }
+};
+
+kss.fx.stop = function() {
+    clearInterval( timerId );
+    timerId = null;
 };
 
 // 扩展接口
