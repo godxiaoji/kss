@@ -1939,7 +1939,7 @@ kss.fx.stop = function() {
 // 扩展接口
 kss.extend({
     // 获取URL参数(update at 2013.03.25)
-    queryString: function(name) {
+    queryString: function( name ) {
         var i = 0,
             params = {},
             key,
@@ -1962,7 +1962,7 @@ kss.extend({
     },
 
     // cookie操作(update at 2013.03.25)
-    cookie: function(name, value, options) {
+    cookie: function( name, value, options ) {
         var i = 0,
             len,
             cookies,
