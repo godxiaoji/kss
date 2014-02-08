@@ -341,3 +341,5 @@ cookie的读取与设置，具体使用方法可见[Cookie](https://github.com/g
 如：travisup.com?id=1
     
     $.queryString(id) // 返回1
+
+* 支持amd和cmd

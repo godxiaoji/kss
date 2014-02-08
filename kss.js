@@ -2,7 +2,7 @@
 * Kss Javascript Class Library
 * @Author  Travis(LinYongji)
 * @Contact http://travisup.com/
-* @Version 1.1.6
+* @Version 1.1.7
 */
 (function( window, undefined ) {
 
@@ -15,7 +15,7 @@ var rootKss,
     // 默认$属性
     _$ = window.$,
 
-    version = "1.1.6",
+    version = "1.1.7",
     class2type = {},
     k_arr = [],
 
@@ -2112,5 +2112,18 @@ kss.browser = clientMatch();
 
 rootKss = kss( document );
 window.kss = window.$ = kss;
+
+// 支持amd和cmd(add at 2012.02.08)
+if ( typeof define === "function" ) {
+    if ( define.amd ) {
+        define( "kss", [], function () {
+            return kss;
+        } );
+    } else if ( define.cmd ) {
+        define( function (require, exports, module) {
+            return kss;
+        } );
+    }
+}
 
 })(window);
