@@ -12,7 +12,8 @@ var rootKss,
 
     document = window.document,
     location = window.location,
-    navigator = window.navigator,
+    // 默认$属性
+    _$ = window.$,
 
     version = "1.1.6",
     class2type = {},
@@ -793,6 +794,13 @@ kss.extend({
     // 抛出错误(add at 2012.12.14)
     error: function( msg ) {
         throw new Error( msg );
+    },
+    // 防冲突，暂时只支持交出$(add at 2014.02.08)
+    noConflict: function() {
+        if ( window.$ === kss ) {
+            window.$ = _$;
+        }
+        return kss;
     }
 });
 
@@ -2059,7 +2067,7 @@ kss.extend({
 
 // 浏览器检测(update at 2012.11.23)
 var clientMatch = function() {
-    var ua = navigator.userAgent.toLowerCase(),
+    var ua = window.navigator.userAgent.toLowerCase(),
         match,
         browser = {
             ie: false,
