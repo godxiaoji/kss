@@ -2,7 +2,7 @@
 * Kss Javascript Class Library
 * @Author  Travis(LinYongji)
 * @Contact http://travisup.com/
-* @Version 1.1.5
+* @Version 1.1.6
 */
 (function( window, undefined ) {
 
@@ -14,7 +14,7 @@ var rootKss,
     location = window.location,
     navigator = window.navigator,
 
-    version = "1.1.5",
+    version = "1.1.6",
     class2type = {},
     k_arr = [],
 
@@ -719,8 +719,9 @@ kss.extend({
             start = Math.max( 0, len + start );
         }
         for ( i = start; i < len; i++ ) {
-            if ( arr[ i ] === value )
+            if ( arr[ i ] === value ) {
                 return i;
+            }
         }
         return -1;
     },
@@ -962,6 +963,44 @@ function returnFalse() {
     return false;
 }
 
+
+// 简单模拟事件(add at 2014.01.03)
+var Event = function( type, props ) {
+    // 直接调用 转化为new
+    if ( !(this instanceof Event) ) {
+        return new Event( type, props );
+    }
+
+    this.type = type;
+
+    if ( props ) {
+		kss.extend( this, props );
+	}
+
+    this.timeStamp = kss.now();
+    // 该事件为模拟事件，不需要修复
+    this[ kss.expando ] = true;
+};
+
+Event.prototype = {
+    // 判定是否阻止了默认事件
+    _isDefaultPrevented: false,
+
+    // 判定是否阻止了冒泡    
+    _isPropagationStopped: false,
+
+    // 模拟阻止阻止默认事件，配合handle用
+    // 由于是模拟事件，该方法貌似无效
+    preventDefault: function() {
+        this._isDefaultPrevented = true;
+    },
+
+    // 模拟阻止事件冒泡，配合handle用
+    stopPropagation: function() {
+        this._isPropagationStopped = true;
+    }
+};
+
 var rKeyEvent = /^key/,
 	rMouseEvent = /^(?:mouse|contextmenu)|click/;
 
@@ -1177,33 +1216,39 @@ kss.event = {
 		}
     },
 
-    // 模拟事件点击(update at 2013.05.14)
-    handlers: function( elem, type, data ) {
-        var i = 0,
-            events, len, event, parent, isPropagationStopped;
+    // 模拟事件点击(update at 2014.01.03)
+    handlers: function( elem, event, data ) {
+        var i = 0, len,
+            events, type,
+            parent;
 
+        if ( typeof event === "object" ) {
+            // 如果是事件，直接继承
+            type = event.type;
+            event.currentTarget = elem;
+        } else {
+            type = event;
+            // 模拟事件对象
+            event = new Event( type, {
+                currentTarget: elem,
+                target: elem,
+                data: data
+            } );
+        }
+        event.currentTarget = elem;
+        
         events = kss.data( elem, "events", type );
 
         if ( events ) {
-            // 修正Event对象
-            event = {
-                target: elem,
-                currentTarget: elem,
-                type: type,
-                data: data,
-                stopPropagation: function() {
-                    isPropagationStopped = true;
-                }
-            };
 
-            for ( len = events.length; i < len; i++ ){
+            for ( len = events.length; i < len; i++ ) {
                 events[ i ].handler.call( elem, event );
             }
 
             parent = elem.parentNode;
             // 模拟事件冒泡
-            if ( parent && !isPropagationStopped ) {
-                kss.event.handlers( parent, type );
+            if ( parent && !event._isPropagationStopped ) {
+                kss.event.handlers( parent, event );
             }
         }
     }
@@ -1487,8 +1532,7 @@ if ( window.getComputedStyle ) {
 
     kss.curCss = function( elem, name ) {
         var computed = kss.getStyles( elem );
-        ret = computed ? computed.getPropertyValue( name ) || computed[ name ] : undefined;
-        return ret;
+        return computed ? computed.getPropertyValue( name ) || computed[ name ] : undefined;
     };
 }
 else if ( document.documentElement.currentStyle ) {
@@ -1497,7 +1541,7 @@ else if ( document.documentElement.currentStyle ) {
     };
 
     kss.curCss = function( elem, name ) {
-        var left, rs, rsleft, ret,
+        var left, rs, rsLeft, ret,
             computed = kss.getStyles( elem ),
             style = elem.style;
 
@@ -1547,7 +1591,7 @@ function camelCase( name ) {
 // 宽高属性单位auto转化为px(update at 2013.04.22)
 // IE hack
 function getWidthOrHeight( elem , name ) {
-    var padding = name == "width" ? ["left", "right"] : ["top", "bottom"],
+    var padding = name === "width" ? ["left", "right"] : ["top", "bottom"],
         ret = elem[ camelCase("offset-" + name) ];
     if ( ret <= 0 || ret == null ) {
         ret = parseFloat( elem[ camelCase( "client-" + name ) ] ) -
@@ -1688,7 +1732,7 @@ var ajax = {
 
     httpData: function( xhr, type ) {
         var ct = xhr.getResponseHeader("content-type") || "";
-        if ( !type && ct.indexOf("xml") >= 0 || type.toLowerCase() == "xml" ) {
+        if ( !type && ct.indexOf("xml") >= 0 || type.toLowerCase() === "xml" ) {
             return xhr.responseXML;
         }
         if ( type === "json" ) {
@@ -1963,15 +2007,11 @@ kss.extend({
 
     // cookie操作(update at 2013.03.25)
     cookie: function( name, value, options ) {
-        var i = 0,
-            len,
-            cookies,
-            cookie,
+        var i = 0, len,
+            cookies, cookie,
             ret,
-            expires = "",
-            date,
-            path,
-            secure;
+            expires = "", date,
+            path, domain, secure;
 
         if ( name == null ) {
             return undefined;
