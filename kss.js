@@ -1893,7 +1893,8 @@ kss.fn.extend({
             for ( key in prop ) {
                 if ( kss.inArray( key, fxStyleAttr ) >= 0 ) {
                     fx = new kss.fx( this, options, key );
-                    from = parseInt( kss(this).css( key ) );
+                    from = kss(this).css( key );
+                    from = isFinite( from ) ? parseInt( from ) : 0;
                     to = parseInt( prop[key] );
                     fx.start( from, to );
                 }
